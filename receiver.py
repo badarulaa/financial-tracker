@@ -1,39 +1,60 @@
-from flask import Flask, request
+import os
+import hashlib
+import hmac
+import logging
+from flask import Flask, request, jsonify
+from dotenv import load_dotenv
+from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
-from datetime import datetime, timedelta
-import os
-from dotenv import load_dotenv
-import sys
 
-# -*- coding: utf-8 -*-
-import sys
-sys.stdout.reconfigure(encoding='utf-8')
-sys.stderr.reconfigure(encoding='utf-8')
-
-# Load .env
 load_dotenv()
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
 
-# Google Sheet auth
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
+APP_SECRET = os.getenv("APP_SECRET")
+
+# ================= GOOGLE SHEETS =================
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
 ]
 
-cred_path = os.getenv("GOOGLE_CREDENTIALS_PATH")
-creds = Credentials.from_service_account_file(cred_path, scopes=SCOPES)
+creds = Credentials.from_service_account_file(
+    os.getenv("GOOGLE_CREDENTIALS_PATH"),
+    scopes=SCOPES
+)
 client = gspread.authorize(creds)
+sheet = client.open_by_key(os.getenv("GOOGLE_SHEET_ID")).sheet1
 
-# Spreadsheet
-sheet_id = os.getenv("GOOGLE_SHEET_ID")
-sh = client.open_by_key(sheet_id)
-sheet = sh.sheet1
+processed_messages = set()
+
+# ================= WEBHOOK VERIFICATION =================
+@app.get("/webhook")
+def verify():
+    mode = request.args.get("hub.mode")
+    token = request.args.get("hub.verify_token")
+    challenge = request.args.get("hub.challenge")
+
+    if mode == "subscribe" and token == VERIFY_TOKEN:
+        return challenge, 200
+    return "Forbidden", 403
 
 
-# ==================== PARSER ====================
-def parse_message(text: str):
+def verify_signature(payload, signature):
+    expected = hmac.new(
+        APP_SECRET.encode(),
+        payload,
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(f"sha256={expected}", signature)
+
+
+# ================= PARSER =================
+def parse_message(text):
     parts = text.strip().split()
     if len(parts) < 3:
         return None
@@ -42,142 +63,72 @@ def parse_message(text: str):
     ket = " ".join(parts[1:-1])
     nominal_raw = parts[-1].lower()
 
-    # Bersihkan prefix dan separator
     nominal_raw = (
         nominal_raw.replace("rp", "")
-        .replace(" ", "")
         .replace(".", "")
         .replace(",", "")
         .strip()
     )
 
-    # Format akhiran "k"
     if nominal_raw.endswith("k"):
-        angka = nominal_raw[:-1]
-        if angka.isdigit():
-            return nama, ket, int(angka) * 1000
-        return None
+        nominal_raw = nominal_raw[:-1]
+        if nominal_raw.isdigit():
+            return nama, ket, int(nominal_raw) * 1000
 
-    # Format akhiran "rb" atau "ribu"
-    if nominal_raw.endswith("rb") or nominal_raw.endswith("ribu"):
-        angka = nominal_raw.replace("rb", "").replace("ribu", "")
-        if angka.isdigit():
-            return nama, ket, int(angka) * 1000
-        return None
-
-    # Format akhiran "jt" atau "juta"
-    if nominal_raw.endswith("jt") or nominal_raw.endswith("juta"):
-        angka = nominal_raw.replace("jt", "").replace("juta", "")
-        if angka.isdigit():
-            return nama, ket, int(angka) * 1_000_000
-        return None
-
-    # Format angka murni
     if nominal_raw.isdigit():
         return nama, ket, int(nominal_raw)
 
     return None
 
-# ==================== REKAP ====================
-def hitung_rekap(filter_func, header_text):
-    data = sheet.get_all_records()
-    filtered = [row for row in data if filter_func(row)]
 
-    if not filtered:
-        return header_text + "\nTidak ada transaksi."
+# ================= MESSAGE RECEIVER =================
+@app.post("/webhook")
+def webhook():
+    signature = request.headers.get("X-Hub-Signature-256")
+    if not signature or not verify_signature(request.data, signature):
+        return "Invalid signature", 403
 
-    total = sum(row["nominal"] for row in filtered)
-
-    return (
-        f"{header_text}\n"
-        f"Total transaksi: {len(filtered)}\n"
-        f"Total nominal: Rp {total:,}"
-    ).replace(",", ".")
-
-
-# ==================== ENDPOINTS ====================
-@app.post("/received")
-def received():
     data = request.get_json()
-    text = data.get("text", "").lower()
 
-    parsed = parse_message(text)
-    if not parsed:
-        return {
-            "ok": False,
-            "reply": (
-                "❌ Format tidak dikenali\n"
-                "Contoh:\n"
-                "bca makan siang 25k\n"
-                "bca gaji 10jt"
-            )
-        }, 200
+    try:
+        entry = data["entry"][0]
+        change = entry["changes"][0]["value"]
+        message = change.get("messages", [])[0]
 
-    nama, ket, nominal = parsed
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        message_id = message["id"]
 
-    sheet.append_row([timestamp, nama, ket, nominal])
+        if message_id in processed_messages:
+            return "OK", 200
 
-    reply_text = (
-        "✅ Transaksi tersimpan\n"
-        "━━━━━━━━━━━━━━\n"
-        f"🏦 Nama: {nama.upper()}\n"
-        f"📝 Ket: {ket}\n"
-        f"💰 Nominal: Rp {nominal:,}\n"
-        f"📅 {timestamp}"
-    ).replace(",", ".")
+        processed_messages.add(message_id)
 
-    return {
-        "ok": True,
-        "reply": reply_text
-    }, 200
+        text = message["text"]["body"].lower()
 
+        parsed = parse_message(text)
+        if not parsed:
+            return "OK", 200
 
+        nama, ket, nominal = parsed
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-@app.get("/rekap_today")
-def rekap_today():
-    today = datetime.now().strftime("%Y-%m-%d")
-    return {
-        "text": hitung_rekap(
-            lambda r: str(r["timestamp"]).startswith(today),
-            f"📅 Rekap Hari Ini ({today})"
-        )
-    }, 200
+        sheet.append_row([timestamp, nama, ket, nominal])
 
+        logging.info(f"Transaksi tercatat: {nama} {nominal}")
 
-@app.get("/rekap_week")
-def rekap_week():
-    now = datetime.now()
-    awal = (now - timedelta(days=now.weekday())).strftime("%Y-%m-%d")
-    akhir = now.strftime("%Y-%m-%d")
-    return {
-        "text": hitung_rekap(
-            lambda r: awal <= str(r["timestamp"])[:10] <= akhir,
-            f"📆 Rekap Minggu Ini ({awal} → {akhir})"
-        )
-    }, 200
+    except Exception as e:
+        logging.error(str(e))
 
+    return "OK", 200
 
-@app.get("/rekap_month")
-def rekap_month():
-    now = datetime.now()
-    awal = now.strftime("%Y-%m-01")
-    akhir = now.strftime("%Y-%m-%d")
-    return {
-        "text": hitung_rekap(
-            lambda r: awal <= str(r["timestamp"])[:10] <= akhir,
-            f"🗓 Rekap Bulan Ini ({awal} → {akhir})"
-        )
-    }, 200
 
 @app.get("/")
 def home():
-    return "Receiver is running.", 200
+    return "Official WhatsApp Cloud API Receiver Running", 200
 
-# ==================== RUN APP ====================
+
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port=int(os.getenv("RECEIVER_PORT", "5000")),
-        debug=True,
+        port=int(os.getenv("PORT", 5000)),
+        debug=False
     )
