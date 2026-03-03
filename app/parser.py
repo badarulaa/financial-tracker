@@ -61,7 +61,7 @@ def _parse_transaction(text: str):
     name = tokens[0]
     description = " ".join(tokens[1:-1])
 
-  name = normalize_name(name)
+  name = _normalize_name(name)
 
   return {
     "type": "transaction",
