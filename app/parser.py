@@ -36,3 +36,75 @@ def _parse_command(text: str):
     return {"type": "command", "command": "delete_last"}
 
   return None
+
+# =============================
+# TRANSACTION PARSER
+# =============================
+
+def _parse_transaction(text: str):
+  tokens = text.split()
+
+  if len(tokens) < 2 :
+    return _error("Format salah. Gunakan: nama keterangan nominal")
+
+  # Nominal selalu token terakhir
+  nominal_raw = tokens[-1]
+
+  amount = _parse_amount(nominal_raw)
+  if amount is None:
+    return _error("Nominal tidak valid.")
+
+  if len(tokens) == 2:
+    name = "Kita"
+    description =tokens[0]
+  else:
+    name = tokens[0]
+    description = " ".join(tokens[1:-1])
+
+  name = normalize_name(name)
+
+  return {
+    "type": "transaction",
+    "name": name,
+    "description": description,
+    "amount": amount,
+  }
+
+# ============================
+# AMOUNT PARSER
+# ============================
+
+def _parse_amount(value: str):
+  value = value.lower().replace(".", "")
+
+  try:
+    if value.endswith("jt"):
+      number = float(value[:-2])
+      return int(number * 1_000_000)
+
+    if value.endswith("rb"):
+      number = float(value[:-2])
+      return int(number * 1_000)
+
+    if value.endswith("k"):
+      number = float(value[:-1])
+      return int(number * 1_000)
+
+    return int(value)
+
+  except ValueError:
+    return None
+
+# ============================
+# NAME NORMALIZER
+# ============================
+
+def _normalize_name(name: str) -> str:
+  return name.lower().capitalize()
+
+# ============================
+# ERROR HELPER
+# ============================
+
+def _error(message: str):
+  return {"type": "error", "message": message}
