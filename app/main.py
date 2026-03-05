@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request
+from fastapi.responses import PlainTextResponse
 from app.database import engine, SessionLocal
 from app.models import Base
 from app.scheduler import start_scheduler
@@ -27,7 +28,7 @@ async def verify_webhook(request: Request):
   challenge = request.query_params.get("hub.challenge")
 
   if mode == "subscribe" and token == settings.WHATSAPP_VERIFY_TOKEN:
-    return int(challenge)
+    return PlainTextResponse(content=challenge)
 
   return {"status": "verification failed"}
 
