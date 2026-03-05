@@ -10,3 +10,4 @@ google-auth-httplib2
 alembic
 httpx
 pydantic-settings
+apscheduler
