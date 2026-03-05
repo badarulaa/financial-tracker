@@ -12,10 +12,11 @@ scripts/
 # Python
 __pycache__/
 .env
+.env.example
 credentials.json
 .DS_Store
-
+g
 # Logs & temp
 pm2.log
 *.log
-root@47.245.111.31
+
