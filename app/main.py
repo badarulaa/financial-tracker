@@ -23,6 +23,8 @@ def root():
 @app.get("/webhook")
 async def verify_webhook(request: Request):
 
+  print("WEBHOOK HIT")
+
   mode = request.query_params.get("hub.mode")
   token = request.query_params.get("hub.verify_token")
   challenge = request.query_params.get("hub.challenge")
