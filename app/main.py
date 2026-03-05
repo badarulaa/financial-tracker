@@ -41,9 +41,9 @@ async def verify_webhook(request: Request):
     print("CHALLENGE:", challenge)
 
     if mode == "subscribe" and token == settings.WHATSAPP_VERIFY_TOKEN:
-        return PlainTextResponse(content=challenge, status_code=200)
+        return PlainTextResponse(content=challenge)
 
-    return PlainTextResponse(content="verification failed", status_code=403)
+    return {"status": "webhook endpoint ready"}
 
 
 # ===== RECEIVE MESSAGE =====
