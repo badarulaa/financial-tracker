@@ -23,16 +23,19 @@ def root():
 @app.get("/webhook")
 async def verify_webhook(request: Request):
 
-  print("WEBHOOK HIT")
-
   mode = request.query_params.get("hub.mode")
   token = request.query_params.get("hub.verify_token")
   challenge = request.query_params.get("hub.challenge")
 
-  if mode == "subscribe" and token == settings.WHATSAPP_VERIFY_TOKEN:
-    return PlainTextResponse(content=challenge)
+  print("MODE: ", mode)
+  print("TOKEN: ", token)
+  print("EXPECTED: ", settings.WHATSAPP_VERIFY_TOKEN)
+  print("CHALLENGE: ", challenge)
 
-  return {"status": "verification failed"}
+  if mode == "subscribe" and token == settings.WHATSAPP_VERIFY_TOKEN:
+    return PlainTextResponse(content=challenge, status_code=200)
+
+  return PlainTextResponse(content="verification failed", status_code=403)
 
 @app.post("/webhook")
 async def receive_message(request: Request):
