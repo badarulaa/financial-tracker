@@ -20,6 +20,7 @@ def generate_weekly_recap(db):
 
 def generate_monthly_recap(db):
   now = datetime.now()
+
   start = datetime(now.year, now.month, 1)
 
   if now.month == 12:
@@ -30,27 +31,41 @@ def generate_monthly_recap(db):
   return _generate_recap(db, start, end, "📅 Rekap Bulan Ini")
 
 def _generate_recap(db, start, end, title):
+
   transactions = get_transaction_between(db, start, end)
 
   if not transactions:
     return f"{title}\n\nTidak ada transaksi."
 
   grouped = defaultdict(list)
-  total_all = 0
 
   for trx in transactions:
     grouped[trx.name].append(trx)
-    total_all += trx.amount
 
-  lines = [f"{title}"]
+  lines = [title]
+  lines.append(f"📅 {start.strftime('%d %b')} - {end.strftime('%d %b %Y')}")
+  lines.append("")
+
+  grand_total = 0
 
   for name, items in grouped.items():
-    subtotal = sum(t.amount for t in items)
-    lines.append(f"{name}:")
-    for t in items:
-      lines.append(f"- {t.description} {format_rupiah(t.amount)}")
 
-  lines.append(f"\nGrand Total: {format_rupiah(total_all)}")
+    lines.append(f"{name}:")
+
+    subtotal = 0
+
+    for trx in items:
+      amount = format_rupiah(trx.amount)
+      lines.append(f"- {trx.description} {amount}")
+      subtotal += trx.amount
+
+    lines.append(f"Subtotal: {format_rupiah(subtotal)}")
+    lines.append("")
+
+    grand_total += subtotal
+
+  lines.append("====================")
+  lines.append(f"💰 Total: {format_rupiah(grand_total)}")
 
   return "\n".join(lines)
 
