@@ -38,16 +38,14 @@ def _generate_recap(db, start, end, title):
     return f"{title}\n\nTidak ada transaksi."
 
   grouped = defaultdict(list)
+  total_all = 0
 
   for trx in transactions:
     grouped[trx.name].append(trx)
+    total_all += trx.amount
 
-  lines = [title]
-  lines.append(f"📅 {start.strftime('%d %b')} - {end.strftime('%d %b %Y')}")
-  lines.append("")
-
-  grand_total = 0
-
+  lines = [title, ""]
+  
   for name, items in grouped.items():
 
     lines.append(f"{name}:")
