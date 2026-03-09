@@ -7,7 +7,7 @@ def generate_daily_recap(db):
   start = datetime(now.year, now.month, now.day)
   end = start + timedelta(days=1)
 
-  return _generate_recap(db, start, end, "📅 Rekap Hari Ini")
+  return _generate_recap(db, start, end, "📅 Rekap Hari Ini\n")
 
 def generate_weekly_recap(db):
   now = datetime.now()
@@ -16,7 +16,7 @@ def generate_weekly_recap(db):
 
   end = start + timedelta(days=7)
 
-  return _generate_recap(db, start, end, "📅 Rekap Minggu Ini")
+  return _generate_recap(db, start, end, "📅 Rekap Minggu Ini\n")
 
 def generate_monthly_recap(db):
   now = datetime.now()
@@ -28,7 +28,7 @@ def generate_monthly_recap(db):
   else:
     end = datetime(now.year, now.month +1, 1)
 
-  return _generate_recap(db, start, end, "📅 Rekap Bulan Ini")
+  return _generate_recap(db, start, end, "📅 Rekap Bulan Ini\n")
 
 def _generate_recap(db, start, end, title):
 
