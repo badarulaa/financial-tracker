@@ -2,70 +2,78 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 from app.crud import get_transaction_between
 
-def generate_daily_recap(db):
-  now = datetime.now()
-  start = datetime(now.year, now.month, now.day)
-  end = start + timedelta(days=1)
 
-  return _generate_recap(db, start, end, "📅 Rekap Hari Ini\n")
+def generate_daily_recap(db):
+    now = datetime.now()
+    start = datetime(now.year, now.month, now.day)
+    end = start + timedelta(days=1)
+
+    return _generate_recap(db, start, end, "📊 Rekap Hari Ini")
+
 
 def generate_weekly_recap(db):
-  now = datetime.now()
-  start = now - timedelta(days=now.weekday())
-  start = datetime(start.year, start.month, start.day)
+    now = datetime.now()
 
-  end = start + timedelta(days=7)
+    start = now - timedelta(days=now.weekday())
+    start = datetime(start.year, start.month, start.day)
 
-  return _generate_recap(db, start, end, "📅 Rekap Minggu Ini\n")
+    end = start + timedelta(days=7)
+
+    return _generate_recap(db, start, end, "📊 Rekap Minggu Ini")
+
 
 def generate_monthly_recap(db):
-  now = datetime.now()
+    now = datetime.now()
 
-  start = datetime(now.year, now.month, 1)
+    start = datetime(now.year, now.month, 1)
 
-  if now.month == 12:
-    end = datetime(now.year +1, 1, 1)
-  else:
-    end = datetime(now.year, now.month +1, 1)
+    if now.month == 12:
+        end = datetime(now.year + 1, 1, 1)
+    else:
+        end = datetime(now.year, now.month + 1, 1)
 
-  return _generate_recap(db, start, end, "📅 Rekap Bulan Ini\n")
+    return _generate_recap(db, start, end, "📊 Rekap Bulan Ini")
+
 
 def _generate_recap(db, start, end, title):
 
-  transactions = get_transaction_between(db, start, end)
+    transactions = get_transaction_between(db, start, end)
 
-  if not transactions:
-    return f"{title}\n\nTidak ada transaksi."
+    if not transactions:
+        return f"{title}\n\nBelum ada transaksi."
 
-  grouped = defaultdict(list)
-  total_all = 0
+    grouped = defaultdict(list)
 
-  for trx in transactions:
-    grouped[trx.name].append(trx)
-    total_all += trx.amount
+    for trx in transactions:
+        grouped[trx.name].append(trx)
 
-  lines = [title, ""]
-  
-  for name, items in grouped.items():
-
-    lines.append(f"{name}:")
-
-    subtotal = 0
-
-    for trx in items:
-      amount = format_rupiah(trx.amount)
-      lines.append(f"- {trx.description} {amount}")
-      subtotal += trx.amount
-
-    lines.append(f"Subtotal: {format_rupiah(subtotal)}")
+    lines = []
+    lines.append(title)
     lines.append("")
 
-    grand_total += subtotal
+    grand_total = 0
 
-  lines.append("====================")
-  lines.append(f"💰 Total: {format_rupiah(grand_total)}")
+    for name, items in grouped.items():
 
-  return "\n".join(lines)
+        lines.append(f"{name}")
 
-def format_rupiah(amount:int):
-  return f"{amount:,.0f}".replace(",", ".")
+        subtotal = 0
+
+        for trx in items:
+            amount = format_rupiah(trx.amount)
+            lines.append(f"• {trx.description} {amount}")
+            subtotal += trx.amount
+
+        lines.append(f"Subtotal: {format_rupiah(subtotal)}")
+        lines.append("")
+
+        grand_total += subtotal
+
+    lines.append("────────")
+    lines.append(f"Total: {format_rupiah(grand_total)}")
+
+    return "\n".join(lines)
+
+
+def format_rupiah(amount: int):
+    return f"{amount:,.0f}".replace(",", ".")
