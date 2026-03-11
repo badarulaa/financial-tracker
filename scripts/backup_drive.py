@@ -14,14 +14,13 @@ SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 DB_NAME = "financial_db"
 
-
 def create_backup():
 
     date = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
     filename = f"backup_{date}.sql"
 
     subprocess.run(
-        f"pg_dump {DB_NAME} > {filename}",
+        f"pg_dump -U postgres -h localhost {DB_NAME} > {filename}",
         shell=True
     )
 
