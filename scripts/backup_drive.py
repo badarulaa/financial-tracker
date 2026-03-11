@@ -2,6 +2,7 @@ import os
 import datetime
 import subprocess
 import pickle
+import gzip
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -18,24 +19,29 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TOKEN_PATH = os.path.join(BASE_DIR, "token.pickle")
 CREDENTIAL_PATH = os.path.join(BASE_DIR, "credentials.json")
 
-BACKUP_DIR = os.path.join(BASE_DIR, "tmp")
-os.makedirs(BACKUP_DIR, exist_ok=True)
-
 
 def create_backup():
 
     date = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
-    filename = f"backup_{date}.sql"
 
-    filepath = os.path.join(BACKUP_DIR, filename)
+    sql_file = f"backup_{date}.sql"
+    gz_file = f"{sql_file}.gz"
 
+    # dump database
     subprocess.run(
-        f"pg_dump -U postgres -h localhost {DB_NAME} > {filepath}",
+        f"pg_dump -U postgres -h localhost {DB_NAME} > {sql_file}",
         shell=True,
         check=True
     )
 
-    return filepath
+    # compress
+    with open(sql_file, "rb") as f_in:
+        with gzip.open(gz_file, "wb") as f_out:
+            f_out.writelines(f_in)
+
+    os.remove(sql_file)
+
+    return gz_file
 
 
 def authenticate():
@@ -53,7 +59,8 @@ def authenticate():
 
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                CREDENTIAL_PATH, SCOPES
+                CREDENTIAL_PATH,
+                SCOPES
             )
             creds = flow.run_local_server(port=0)
 
@@ -89,6 +96,8 @@ def main():
     upload_to_drive(backup_file)
 
     os.remove(backup_file)
+
+    print("Backup uploaded and local file removed.")
 
 
 if __name__ == "__main__":
