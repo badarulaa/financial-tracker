@@ -1,21 +1,22 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from collections import defaultdict
 from app.crud import get_transaction_between
 
 
 def generate_daily_recap(db):
-    now = datetime.now()
-    start = datetime(now.year, now.month, now.day)
+    now = datetime.now(ZoneInfo("Asia/Jakarta"))
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     end = start + timedelta(days=1)
 
     return _generate_recap(db, start, end, "📊 Rekap Hari Ini")
 
 
 def generate_weekly_recap(db):
-    now = datetime.now()
+    now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
     start = now - timedelta(days=now.weekday())
-    start = datetime(start.year, start.month, start.day)
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     end = start + timedelta(days=7)
 
@@ -23,16 +24,17 @@ def generate_weekly_recap(db):
 
 
 def generate_monthly_recap(db):
-    now = datetime.now()
 
-    start = datetime(now.year, now.month, 1)
+    now = datetime.now(ZoneInfo("Asia/Jakarta"))
+
+    start = datetime(now.year, now.month, 1, tzinfo=ZoneInfo("Asia/Jakarta"))
 
     if now.month == 12:
-        end = datetime(now.year + 1, 1, 1)
+        end = datetime(now.year + 1, 1, 1, tzinfo=ZoneInfo("Asia/Jakarta"))
     else:
-        end = datetime(now.year, now.month + 1, 1)
+        end = datetime(now.year, now.month + 1, 1, tzinfo=ZoneInfo("Asia/Jakarta"))
 
-    return _generate_recap(db, start, end, "📊 Rekap Bulan Ini")
+    return _generate_recap(db, start, end, "📅 Rekap Bulan Ini\n")
 
 
 def _generate_recap(db, start, end, title):
