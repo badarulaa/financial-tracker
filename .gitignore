@@ -7,7 +7,7 @@ session/
 .wwebjs_auth/
 .wwebjs_cache/
 package-lock.json
-scripts/
+# scripts/
 
 # Python
 __pycache__/
