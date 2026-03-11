@@ -8,6 +8,7 @@ class Settings(BaseSettings):
   WHATSAPP_VERIFY_TOKEN: str
   USER_PHONE_OWNER: str
   USER_PHONE_WIFE: str
+  FOLDER_ID: str
 
   class Config:
     env_file = ".env"

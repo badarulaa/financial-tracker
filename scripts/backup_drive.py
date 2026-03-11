@@ -8,6 +8,7 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 import pickle
+from app.config import Settings
 
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
@@ -58,7 +59,10 @@ def upload_to_drive(filename):
 
     service = build("drive", "v3", credentials=creds)
 
-    file_metadata = {"name": filename}
+    file_metadata = {
+      "name": filename,
+      "parents": [Settings.FOLDER_ID]
+    }
 
     media = MediaFileUpload(filename)
 
