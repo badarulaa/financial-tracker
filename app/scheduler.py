@@ -7,6 +7,7 @@ from app.config import settings
 scheduler = BackgroundScheduler()
 
 def daily_recap_job():
+  print("Scheduler running at: ", datetime.now())
   db = SessionLocal()
 
   try:
