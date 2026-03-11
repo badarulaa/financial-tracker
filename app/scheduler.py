@@ -1,22 +1,29 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
 from app.database import SessionLocal
-from app.recap import generate_daily_recap
+from app.recap import generate_weekly_recap
+from app.whatsapp import send_whatsapp_message
+from app.config import settings
+
 
 scheduler = BackgroundScheduler()
 
-def daily_recap_job():
 
-    print("Scheduler triggered at:", datetime.now())
+def weekly_recap_job():
 
     db = SessionLocal()
 
     try:
-        recap = generate_daily_recap(db)
+        recap = generate_weekly_recap(db)
 
-        print("\n===== DAILY RECAP =====")
+        print("\n===== WEEKLY RECAP =====")
         print(recap)
-        print("======================\n")
+        print("========================\n")
+
+        # kirim ke kamu
+        send_whatsapp_message(settings.USER_PHONE, recap)
+
+        # kirim ke istri
+        send_whatsapp_message(settings.WIFE_PHONE, recap)
 
     finally:
         db.close()
@@ -24,16 +31,12 @@ def daily_recap_job():
 
 def start_scheduler():
 
-    print("Starting scheduler...")
-
     scheduler.add_job(
-        daily_recap_job,
-        trigger="interval",   # sementara kita ubah dulu
-        seconds=30
+        weekly_recap_job,
+        trigger="cron",
+        day_of_week="sun",   # setiap Minggu
+        hour=21,
+        minute=0
     )
 
-    print("Jobs:", scheduler.get_jobs())
-
     scheduler.start()
-
-    print("Scheduler started")
