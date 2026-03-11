@@ -50,39 +50,28 @@ async def verify_webhook(request: Request):
 @app.post("/webhook")
 async def receive_message(request: Request):
 
-    try:
-        body = await request.json()
-        print("Webhook payload:", body)
+    body = await request.json()
 
-        entry = body.get("entry", [])
-        if not entry:
-            return {"status": "ignored"}
+    entry = body["entry"][0]
+    changes = entry["changes"][0]
+    value = changes["value"]
 
-        changes = entry[0].get("changes", [])
-        if not changes:
-            return {"status": "ignored"}
+    # ignore status update
+    if "messages" not in value:
+        return {"status": "ignored"}
 
-        value = changes[0].get("value", {})
+    message = value["messages"][0]["text"]["body"]
+    sender = value["messages"][0]["from"]
 
-        if "messages" not in value:
-            return {"status": "ignored"}
+    print("Incoming message:", message)
+    print("Sender:", sender)
 
-        message = value["messages"][0]["text"]["body"]
-        sender = value["messages"][0]["from"]
+    db = SessionLocal()
 
-        print("Incoming message:", message)
-        print("Sender:", sender)
+    response = handle_message(db, message)
 
-        db = SessionLocal()
+    send_whatsapp_message(sender, response)
 
-        try:
-            response_text = handle_message(db, message)
-        finally:
-            db.close()
-
-        send_whatsapp_message(sender, response_text)
-
-    except Exception as e:
-        print("Webhook error:", e)
+    db.close()
 
     return {"status": "ok"}
