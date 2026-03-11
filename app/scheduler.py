@@ -3,6 +3,7 @@ from app.database import SessionLocal
 from app.recap import generate_daily_recap
 from app.whatsapp import send_whatsapp_message
 from app.config import settings
+from datetime import datetime
 
 scheduler = BackgroundScheduler()
 
