@@ -22,11 +22,16 @@ def daily_recap_job():
     db.close()
 
 def start_scheduler():
-  scheduler.add_job(
-    daily_recap_job,
-    trigger='cron',
-    # hour=21,
-    minute=1
-  )
 
-  scheduler.start()
+    print("Starting scheduler...")
+
+    scheduler.add_job(
+        daily_recap_job,
+        trigger="cron",
+        # hour=21,
+        minute=1
+    )
+
+    scheduler.start()
+
+    print("Scheduler started")
