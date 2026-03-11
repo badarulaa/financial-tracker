@@ -32,6 +32,8 @@ def start_scheduler():
         minute=1
     )
 
+    print("Registered jobs: ", scheduler.get_jobs())
+
     scheduler.start()
 
     print("Scheduler started")
