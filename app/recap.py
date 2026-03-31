@@ -3,28 +3,28 @@ from zoneinfo import ZoneInfo
 from collections import defaultdict
 from app.crud import get_transaction_between
 
-
-WIB = ZoneInfo("Asia/Jakarta")
-UTC = ZoneInfo("UTC")
-
 WIB = ZoneInfo("Asia/Jakarta")
 UTC = ZoneInfo("UTC")
 
 def generate_daily_recap(db):
-    now = datetime.now(ZoneInfo("Asia/Jakarta"))
-    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=1)
+    now = datetime.now(WIB)
+    start_local = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_local = start_local + timedelta(days=1)
+
+    start = start_local.astimezone(UTC).replace(tzinfo=None)
+    end = end_local.astimezone(UTC).replace(tzinfo=None)
 
     return _generate_recap(db, start, end, "📊 Rekap Hari Ini")
 
 
 def generate_weekly_recap(db):
-    now = datetime.now(ZoneInfo("Asia/Jakarta"))
+    now = datetime.now(WIB)
+    start_local = now - timedelta(days=now.weekday())
+    start_local = start_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_local = start_local + timedelta(days=7)
 
-    start = now - timedelta(days=now.weekday())
-    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-
-    end = start + timedelta(days=7)
+    start = start_local.astimezone(UTC).replace(tzinfo=None)
+    end = end_local.astimezone(UTC).replace(tzinfo=None)
 
     return _generate_recap(db, start, end, "📊 Rekap Minggu Ini")
 
@@ -38,9 +38,12 @@ def generate_monthly_recap(db):
     if now.month == 12:
         end_local = datetime(now.year + 1, 1, 1, tzinfo=WIB)
     else:
-        end = datetime(now.year, now.month + 1, 1, tzinfo=ZoneInfo("Asia/Jakarta"))
+        end_local = datetime(now.year, now.month + 1, 1, tzinfo=WIB)
 
-    return _generate_recap(db, start, end, "📊 Rekap Bulan Ini")
+    start = start_local.astimezone(UTC).replace(tzinfo=None)
+    end = end_local.astimezone(UTC).replace(tzinfo=None)
+
+    return _generate_recap(db, start, end, "📅 Rekap Bulan Ini\n")
 
 
 def _generate_recap(db, start, end, title):
@@ -55,7 +58,9 @@ def _generate_recap(db, start, end, title):
     for trx in transactions:
         grouped[trx.name].append(trx)
 
-    lines = [title, ""]
+    lines = []
+    lines.append(title)
+    lines.append("")
 
     grand_total = 0
 
