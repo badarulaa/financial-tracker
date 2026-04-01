@@ -1,23 +1,37 @@
 import os
 import datetime
 import subprocess
-import pickle
 import gzip
 
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from google.auth.transport.requests import Request
 
 from app.config import settings
 
 
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
+# =============================
+# CONFIG
+# =============================
+
 DB_NAME = "financial_db"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TOKEN_PATH = os.path.join(BASE_DIR, "token.pickle")
-CREDENTIAL_PATH = os.path.join(BASE_DIR, "credentials.json")
+SERVICE_ACCOUNT_FILE = os.path.join(BASE_DIR, "credentials.json")
+
+SCOPES = ['https://www.googleapis.com/auth/drive']
+
+
+# =============================
+# GOOGLE DRIVE SERVICE
+# =============================
+
+def get_drive_service():
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE,
+        scopes=SCOPES
+    )
+    return build("drive", "v3", credentials=creds)
 
 
 # =============================
@@ -47,44 +61,12 @@ def create_backup():
 
 
 # =============================
-# GOOGLE AUTH
-# =============================
-
-def authenticate():
-
-    creds = None
-
-    if os.path.exists(TOKEN_PATH):
-        with open(TOKEN_PATH, "rb") as token:
-            creds = pickle.load(token)
-
-    if not creds or not creds.valid:
-
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                CREDENTIAL_PATH,
-                SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-
-        with open(TOKEN_PATH, "wb") as token:
-            pickle.dump(creds, token)
-
-    return creds
-
-
-# =============================
 # UPLOAD BACKUP
 # =============================
 
 def upload_to_drive(filepath):
 
-    creds = authenticate()
-
-    service = build("drive", "v3", credentials=creds)
+    service = get_drive_service()
 
     file_metadata = {
         "name": os.path.basename(filepath),
@@ -105,9 +87,7 @@ def upload_to_drive(filepath):
 
 def cleanup_old_backups():
 
-    creds = authenticate()
-
-    service = build("drive", "v3", credentials=creds)
+    service = get_drive_service()
 
     seven_days_ago = (
         datetime.datetime.utcnow() - datetime.timedelta(days=7)
@@ -136,15 +116,21 @@ def cleanup_old_backups():
 
 def main():
 
+    print("Starting backup...")
+
     backup_file = create_backup()
+    print(f"Backup created: {backup_file}")
 
     upload_to_drive(backup_file)
+    print("Uploaded to Google Drive")
 
     os.remove(backup_file)
+    print("Local file removed")
 
     cleanup_old_backups()
+    print("Old backups cleaned")
 
-    print("Backup uploaded. Old backups cleaned.")
+    print("Backup process completed ✅")
 
 
 if __name__ == "__main__":
