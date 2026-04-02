@@ -66,6 +66,8 @@ def create_backup():
 
 def upload_to_drive(filepath):
 
+    print("DEBUG FOLDER_ID:", settings.FOLDER_ID)
+
     service = get_drive_service()
 
     file_metadata = {
@@ -132,9 +134,6 @@ def main():
     print("Old backups cleaned")
 
     print("Backup process completed ✅")
-
-    print("Folder ID:", settings.FOLDER_ID)
-
 
 if __name__ == "__main__":
     main()
