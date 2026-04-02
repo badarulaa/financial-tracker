@@ -133,6 +133,8 @@ def main():
 
     print("Backup process completed ✅")
 
+    print("Folder ID:", settings.FOLDER_ID)
+
 
 if __name__ == "__main__":
     main()
