@@ -75,12 +75,13 @@ def upload_to_drive(filepath):
         "parents": [settings.FOLDER_ID]
     }
 
-    media = MediaFileUpload(filepath)
+    media = MediaFileUpload(filepath, resumable=True)
 
     service.files().create(
         body=file_metadata,
         media_body=media,
-        supportsAllDrives=True
+        supportsAllDrives=True,
+        fields="id"
     ).execute()
 
 
