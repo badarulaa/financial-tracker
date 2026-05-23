@@ -6,6 +6,8 @@ from app.crud import get_transaction_between
 
 WIB = ZoneInfo("Asia/Jakarta")
 UTC = ZoneInfo("UTC")
+DEFAULT_CATEGORY = "other"
+
 
 
 def generate_daily_recap(db):
@@ -55,6 +57,7 @@ def _generate_recap(db, start, end, title):
 
     income_items = [trx for trx in transactions if trx.type == "income"]
     expense_items = [trx for trx in transactions if trx.type == "expense"]
+<<<<<<< HEAD
 
     lines = [title, ""]
 
@@ -110,6 +113,68 @@ def _append_grouped_section(lines, title, transactions):
         lines.append("")
 
         section_total += subtotal
+
+    return section_total
+=======
+
+    lines = [title, ""]
+
+    total_income = _append_grouped_section(lines, "🟢 Income", income_items)
+    total_expense = _append_grouped_section(lines, "🔴 Expense", expense_items)
+    net = total_income - total_expense
+
+    lines.append("────────")
+    lines.append(f"Total Income: {format_rupiah(total_income)}")
+    lines.append(f"Total Expense: {format_rupiah(total_expense)}")
+    lines.append(f"Net: {format_rupiah(net)}")
+
+    return "\n".join(lines)
+>>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
+
+
+def _append_grouped_section(lines, title, transactions):
+    lines.append(title)
+
+    if not transactions:
+        lines.append("Belum ada.")
+        lines.append("")
+        return 0
+
+    grouped_by_category = defaultdict(list)
+
+    for trx in transactions:
+        category = trx.category or DEFAULT_CATEGORY
+        if category == "legacy":
+            category = DEFAULT_CATEGORY
+        grouped_by_category[category].append(trx)
+
+    section_total = 0
+
+    for category, category_items in grouped_by_category.items():
+        lines.append(category.capitalize())
+
+        grouped_by_name = defaultdict(list)
+        for trx in category_items:
+            grouped_by_name[trx.name or "Kita"].append(trx)
+
+        category_total = 0
+
+        for name, name_items in grouped_by_name.items():
+            lines.append(f"{name}")
+
+            name_total = 0
+            for trx in name_items:
+                amount = format_rupiah(trx.amount)
+                lines.append(f"• {trx.description} {amount}")
+                name_total += trx.amount
+
+            lines.append(f"Subtotal {name}: {format_rupiah(name_total)}")
+            category_total += name_total
+
+        lines.append(f"Subtotal {category.capitalize()}: {format_rupiah(category_total)}")
+        lines.append("")
+
+        section_total += category_total
 
     return section_total
 

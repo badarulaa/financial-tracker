@@ -19,7 +19,11 @@ def handle_message(db, text: str) -> str:
             parsed["name"],
             parsed["description"],
             parsed["amount"],
+<<<<<<< HEAD
             type=parsed["transaction_type"],
+=======
+            transaction_type=parsed["transaction_type"],
+>>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
             category=parsed["category"],
         )
 
@@ -57,4 +61,8 @@ def handle_message(db, text: str) -> str:
                 ).replace(",", ".")
             return "Tidak ada transaksi untuk dihapus."
 
+<<<<<<< HEAD
     return "⚠ Perintah tidak dikenali."
+=======
+    return "⚠ Perintah tidak dikenali."
+>>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f

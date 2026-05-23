@@ -2,9 +2,8 @@ from sqlalchemy import Column, Integer, String, Text, DateTime
 from datetime import datetime
 from app.database import Base
 
-class Transaction(Base):
-  __tablename__ = "transactions"
 
+<<<<<<< HEAD
   id = Column(Integer, primary_key=True, index=True)
   name = Column(String(50), nullable=False)
 
@@ -14,3 +13,15 @@ class Transaction(Base):
   description = Column(Text, nullable=True)
   amount = Column(Integer, nullable=False)
   created_at = Column(DateTime, default=datetime.utcnow)
+=======
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), nullable=False)
+    type = Column(String(20), nullable=False, default="expense")
+    category = Column(String(50), nullable=False, default="other")
+    description = Column(Text, nullable=True)
+    amount = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+>>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f

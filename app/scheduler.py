@@ -9,7 +9,6 @@ scheduler = BackgroundScheduler()
 
 
 def weekly_recap_job():
-
     db = SessionLocal()
 
     try:
@@ -30,13 +29,12 @@ def weekly_recap_job():
 
 
 def start_scheduler():
-
     scheduler.add_job(
         weekly_recap_job,
         trigger="cron",
         day_of_week="sun",   # setiap Minggu
         hour=21,
-        minute=0
+        minute=0,
     )
 
     scheduler.start()
