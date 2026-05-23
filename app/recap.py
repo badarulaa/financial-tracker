@@ -9,7 +9,6 @@ UTC = ZoneInfo("UTC")
 DEFAULT_CATEGORY = "other"
 
 
-
 def generate_daily_recap(db):
     now = datetime.now(WIB)
     start_local = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -35,7 +34,6 @@ def generate_weekly_recap(db):
 
 def generate_monthly_recap(db):
     now = datetime.now(WIB)
-
     start_local = datetime(now.year, now.month, 1, tzinfo=WIB)
 
     if now.month == 12:
@@ -57,65 +55,6 @@ def _generate_recap(db, start, end, title):
 
     income_items = [trx for trx in transactions if trx.type == "income"]
     expense_items = [trx for trx in transactions if trx.type == "expense"]
-<<<<<<< HEAD
-
-    lines = [title, ""]
-
-    total_income = _append_grouped_section(
-        lines,
-        "🟢 Income",
-        income_items,
-    )
-
-    total_expense = _append_grouped_section(
-        lines,
-        "🔴 Expense",
-        expense_items,
-    )
-
-    net = total_income - total_expense
-
-    lines.append("────────")
-    lines.append(f"Total Income: {format_rupiah(total_income)}")
-    lines.append(f"Total Expense: {format_rupiah(total_expense)}")
-    lines.append(f"Net: {format_rupiah(net)}")
-
-    return "\n".join(lines)
-
-
-def _append_grouped_section(lines, title, transactions):
-    lines.append(title)
-
-    if not transactions:
-        lines.append("Belum ada.")
-        lines.append("")
-        return 0
-
-    grouped = defaultdict(list)
-
-    for trx in transactions:
-        category = trx.category or "legacy"
-        grouped[category].append(trx)
-
-    section_total = 0
-
-    for category, items in grouped.items():
-        lines.append(category.capitalize())
-
-        subtotal = 0
-
-        for trx in items:
-            amount = format_rupiah(trx.amount)
-            lines.append(f"• {trx.description} {amount}")
-            subtotal += trx.amount
-
-        lines.append(f"Subtotal: {format_rupiah(subtotal)}")
-        lines.append("")
-
-        section_total += subtotal
-
-    return section_total
-=======
 
     lines = [title, ""]
 
@@ -129,7 +68,6 @@ def _append_grouped_section(lines, title, transactions):
     lines.append(f"Net: {format_rupiah(net)}")
 
     return "\n".join(lines)
->>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
 
 
 def _append_grouped_section(lines, title, transactions):
