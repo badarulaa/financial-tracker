@@ -2,11 +2,8 @@ from app.database import SessionLocal
 from app.models import Transaction
 
 
-<<<<<<< HEAD
-=======
 DEFAULT_CATEGORY = "other"
 
->>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
 CATEGORY_KEYWORDS = {
     "makan": [
         "makan",
@@ -54,7 +51,6 @@ CATEGORY_KEYWORDS = {
     ],
 }
 
-
 INCOME_KEYWORDS = [
     "gaji",
     "salary",
@@ -88,22 +84,14 @@ def detect_category(description: str, transaction_type: str) -> str:
             return "bonus"
         if "refund" in desc:
             return "refund"
-<<<<<<< HEAD
-        return "lainnya"
-=======
         return DEFAULT_CATEGORY
->>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
 
     for category, keywords in CATEGORY_KEYWORDS.items():
         for keyword in keywords:
             if keyword in desc:
                 return category
 
-<<<<<<< HEAD
-    return "legacy"
-=======
     return DEFAULT_CATEGORY
->>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
 
 
 def main():
@@ -112,11 +100,7 @@ def main():
     try:
         transactions = (
             db.query(Transaction)
-<<<<<<< HEAD
-            .filter(Transaction.category == "legacy")
-=======
             .filter(Transaction.category.in_(["legacy", DEFAULT_CATEGORY]))
->>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
             .all()
         )
 
@@ -128,20 +112,18 @@ def main():
             detected_type = detect_type(description)
             detected_category = detect_category(description, detected_type)
 
-<<<<<<< HEAD
-            if detected_category != "legacy" or detected_type != trx.type:
-=======
-            if detected_category != DEFAULT_CATEGORY or trx.category == "legacy" or detected_type != trx.type:
->>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
+            should_update = (
+                detected_category != DEFAULT_CATEGORY
+                or trx.category == "legacy"
+                or detected_type != trx.type
+            )
+
+            if should_update:
                 trx.type = detected_type
                 trx.category = detected_category
                 updated += 1
 
         db.commit()
-<<<<<<< HEAD
-
-=======
->>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
         print(f"Backfill selesai. Updated: {updated} transaksi.")
 
     finally:
@@ -149,8 +131,4 @@ def main():
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
     main()
-=======
-    main()
->>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
