@@ -3,6 +3,8 @@ from typing import Dict, Any
 INCOME_ALIASES = {"in", "income", "masuk", "pemasukan"}
 EXPENSE_ALIASES = {"out", "expense", "keluar", "pengeluaran"}
 TYPE_ALIASES = INCOME_ALIASES | EXPENSE_ALIASES
+OWNER_ALIASES = {"gw", "gue", "aku", "saya", "dar", "owner"}
+WIFE_ALIASES = {"ai", "istri", "bini", "wife"}
 DEFAULT_CATEGORY = "other"
 DEFAULT_NAME = "Kita"
 
@@ -90,18 +92,60 @@ def parse_message(text: str) -> Dict[str, Any]:
     return _parse_transaction(lowered)
 
 
+def get_category_help() -> str:
+    lines = [
+        "📚 *Kategori Yang Dipakai*",
+        "",
+        "Bot tetap nerima input bebas. Keyword akan diarahkan otomatis ke kategori umum ini:",
+        "",
+    ]
+
+    for category in ["income", "makanan", "transportasi", "tagihan", "belanja", "kesehatan", "rumah", "hiburan", "other"]:
+        samples = ", ".join(CATEGORY_KEYWORDS[category][:8])
+        lines.append(f"• *{format_text(category)}* — {samples}")
+
+    lines.extend([
+        "",
+        "Contoh:",
+        "nasi padang 20k → Makanan",
+        "grab kantor 35k → Transportasi",
+        "netflix 65k → Tagihan",
+        "diapers 150k → Rumah",
+        "domain 180k → Other",
+    ])
+
+    return "\n".join(lines)
+
+
 def _parse_command(text: str):
+    if text == "kategori" or text.startswith("kategori "):
+        return {"type": "command", "command": "category_help"}
+
     if text.startswith("rekap"):
+        owner = _parse_owner_filter(text)
+
         if "hari ini" in text:
-            return {"type": "command", "command": "rekap", "scope": "daily"}
+            return {"type": "command", "command": "rekap", "scope": "daily", "owner": owner}
         if "minggu ini" in text:
-            return {"type": "command", "command": "rekap", "scope": "weekly"}
+            return {"type": "command", "command": "rekap", "scope": "weekly", "owner": owner}
         if "bulan ini" in text:
-            return {"type": "command", "command": "rekap", "scope": "monthly"}
+            return {"type": "command", "command": "rekap", "scope": "monthly", "owner": owner}
         return _error("Format rekap tidak dikenali.")
 
     if text.startswith("hapus terakhir"):
         return {"type": "command", "command": "delete_last"}
+
+    return None
+
+
+def _parse_owner_filter(text: str):
+    tokens = set(text.split())
+
+    if tokens & OWNER_ALIASES:
+        return "Dar"
+
+    if tokens & WIFE_ALIASES:
+        return "Ai"
 
     return None
 
@@ -235,6 +279,12 @@ def _normalize_name(name: str) -> str:
 
 def _normalize_category(category: str) -> str:
     return category.lower().strip() or DEFAULT_CATEGORY
+
+
+def format_text(value) -> str:
+    if value is None:
+        return "-"
+    return str(value).replace("_", " ").strip().title()
 
 
 def _error(message: str):
