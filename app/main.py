@@ -62,11 +62,7 @@ async def receive_message(request: Request):
 
     message = value["messages"][0]["text"]["body"]
     sender = value["messages"][0]["from"]
-
-    if sender == settings.USER_PHONE_OWNER:
-        message = f"dar {message}"
-    elif sender == settings.USER_PHONE_WIFE:
-        message = f"ai {message}"
+    message = apply_sender_name(message, sender)
 
     print("Incoming message:", message)
     print("Sender:", sender)
@@ -80,3 +76,22 @@ async def receive_message(request: Request):
     db.close()
 
     return {"status": "ok"}
+
+
+def apply_sender_name(message: str, sender: str) -> str:
+    normalized_message = message.strip().lower()
+
+    if is_command(normalized_message):
+        return message
+
+    if sender == settings.USER_PHONE_OWNER:
+        return f"dar {message}"
+
+    if sender == settings.USER_PHONE_WIFE:
+        return f"ai {message}"
+
+    return message
+
+
+def is_command(message: str) -> bool:
+    return message.startswith("rekap") or message.startswith("hapus terakhir")
