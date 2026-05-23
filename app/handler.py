@@ -27,11 +27,11 @@ def handle_message(db, text: str) -> str:
 
         return (
             f"✅ {label} dicatat\n"
-            f"Nama: {parsed['name']}\n"
-            f"Kategori: {parsed['category']}\n"
-            f"Detail: {parsed['description']}\n"
-            f"Nominal: {parsed['amount']:,.0f}"
-        ).replace(",", ".")
+            f"Nama: {format_text(parsed['name'])}\n"
+            f"Kategori: {format_text(parsed['category'])}\n"
+            f"Detail: {format_text(parsed['description'])}\n"
+            f"Nominal: {format_rupiah(parsed['amount'])}"
+        )
 
     if parsed["type"] == "command":
         command = parsed["command"]
@@ -53,9 +53,21 @@ def handle_message(db, text: str) -> str:
             if deleted:
                 return (
                     f"🗑️ Transaksi terakhir dihapus:\n"
-                    f"{deleted.name} - {deleted.type} - {deleted.category} - {deleted.description} "
-                    f"{deleted.amount:,.0f}"
-                ).replace(",", ".")
+                    f"{format_text(deleted.name)} - {format_text(deleted.type)} - "
+                    f"{format_text(deleted.category)} - {format_text(deleted.description)} "
+                    f"{format_rupiah(deleted.amount)}"
+                )
             return "Tidak ada transaksi untuk dihapus."
 
     return "⚠ Perintah tidak dikenali."
+
+
+def format_text(value) -> str:
+    if value is None:
+        return "-"
+
+    return str(value).replace("_", " ").strip().title()
+
+
+def format_rupiah(amount: int) -> str:
+    return f"{amount:,.0f}".replace(",", ".")
