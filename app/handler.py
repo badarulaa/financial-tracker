@@ -19,11 +19,7 @@ def handle_message(db, text: str) -> str:
             parsed["name"],
             parsed["description"],
             parsed["amount"],
-<<<<<<< HEAD
-            type=parsed["transaction_type"],
-=======
             transaction_type=parsed["transaction_type"],
->>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
             category=parsed["category"],
         )
 
@@ -31,6 +27,7 @@ def handle_message(db, text: str) -> str:
 
         return (
             f"✅ {label} dicatat\n"
+            f"Nama: {parsed['name']}\n"
             f"Kategori: {parsed['category']}\n"
             f"Detail: {parsed['description']}\n"
             f"Nominal: {parsed['amount']:,.0f}"
@@ -56,13 +53,9 @@ def handle_message(db, text: str) -> str:
             if deleted:
                 return (
                     f"🗑️ Transaksi terakhir dihapus:\n"
-                    f"{deleted.type} - {deleted.category} - {deleted.description} "
+                    f"{deleted.name} - {deleted.type} - {deleted.category} - {deleted.description} "
                     f"{deleted.amount:,.0f}"
                 ).replace(",", ".")
             return "Tidak ada transaksi untuk dihapus."
 
-<<<<<<< HEAD
     return "⚠ Perintah tidak dikenali."
-=======
-    return "⚠ Perintah tidak dikenali."
->>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
