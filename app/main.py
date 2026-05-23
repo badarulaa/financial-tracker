@@ -84,10 +84,14 @@ def apply_sender_name(message: str, sender: str) -> str:
     if is_command(normalized_message):
         return message
 
-    if sender == settings.USER_PHONE_OWNER:
+    normalized_sender = normalize_phone(sender)
+    owner_phone = normalize_phone(settings.USER_PHONE_OWNER)
+    wife_phone = normalize_phone(settings.USER_PHONE_WIFE)
+
+    if normalized_sender == owner_phone:
         return f"dar {message}"
 
-    if sender == settings.USER_PHONE_WIFE:
+    if normalized_sender == wife_phone:
         return f"ai {message}"
 
     return message
@@ -95,3 +99,7 @@ def apply_sender_name(message: str, sender: str) -> str:
 
 def is_command(message: str) -> bool:
     return message.startswith("rekap") or message.startswith("hapus terakhir")
+
+
+def normalize_phone(value: str) -> str:
+    return "".join(char for char in str(value) if char.isdigit())
