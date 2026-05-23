@@ -2,16 +2,26 @@ from sqlalchemy.orm import Session
 from datetime import datetime, date
 from app.models import Transaction
 
-def create_transaction(db: Session, name: str, description: str, amount: int):
-  transaction = Transaction(
-    name=name,
-    description=description,
-    amount=amount,
-  )
-  db.add(transaction)
-  db.commit()
-  db.refresh(transaction)
-  return transaction
+
+def create_transaction(
+    db: Session,
+    name: str,
+    description: str,
+    amount: int,
+    transaction_type: str = "expense",
+    category: str = "other",
+):
+    transaction = Transaction(
+        name=name,
+        description=description,
+        amount=amount,
+        type=transaction_type,
+        category=category,
+    )
+    db.add(transaction)
+    db.commit()
+    db.refresh(transaction)
+    return transaction
 
 
 def get_today_transactions(db: Session):
