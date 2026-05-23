@@ -2,6 +2,8 @@ from app.database import SessionLocal
 from app.models import Transaction
 
 
+DEFAULT_CATEGORY = "other"
+
 CATEGORY_KEYWORDS = {
     "makan": [
         "makan",
@@ -83,14 +85,14 @@ def detect_category(description: str, transaction_type: str) -> str:
             return "bonus"
         if "refund" in desc:
             return "refund"
-        return "lainnya"
+        return DEFAULT_CATEGORY
 
     for category, keywords in CATEGORY_KEYWORDS.items():
         for keyword in keywords:
             if keyword in desc:
                 return category
 
-    return "legacy"
+    return DEFAULT_CATEGORY
 
 
 def main():
@@ -99,7 +101,7 @@ def main():
     try:
         transactions = (
             db.query(Transaction)
-            .filter(Transaction.category == "legacy")
+            .filter(Transaction.category.in_(["legacy", DEFAULT_CATEGORY]))
             .all()
         )
 
@@ -111,7 +113,7 @@ def main():
             detected_type = detect_type(description)
             detected_category = detect_category(description, detected_type)
 
-            if detected_category != "legacy" or detected_type != trx.type:
+            if detected_category != DEFAULT_CATEGORY or trx.category == "legacy" or detected_type != trx.type:
                 trx.type = detected_type
                 trx.category = detected_category
                 updated += 1
