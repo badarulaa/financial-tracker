@@ -19,7 +19,7 @@ CATEGORY_ORDER = [
 ]
 
 
-def generate_daily_recap(db, owner=None):
+def generate_daily_recap(db, owner=None, view="detail"):
     now = datetime.now(WIB)
     start_local = now.replace(hour=0, minute=0, second=0, microsecond=0)
     end_local = start_local + timedelta(days=1)
@@ -27,10 +27,10 @@ def generate_daily_recap(db, owner=None):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "Rekap Hari Ini", owner=owner)
+    return _generate_recap(db, start, end, "Rekap Hari Ini", owner=owner, view=view)
 
 
-def generate_weekly_recap(db, owner=None):
+def generate_weekly_recap(db, owner=None, view="detail"):
     now = datetime.now(WIB)
     start_local = now - timedelta(days=now.weekday())
     start_local = start_local.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -39,10 +39,10 @@ def generate_weekly_recap(db, owner=None):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "Rekap Minggu Ini", owner=owner)
+    return _generate_recap(db, start, end, "Rekap Minggu Ini", owner=owner, view=view)
 
 
-def generate_monthly_recap(db, owner=None):
+def generate_monthly_recap(db, owner=None, view="detail"):
     now = datetime.now(WIB)
     start_local = datetime(now.year, now.month, 1, tzinfo=WIB)
 
@@ -54,10 +54,10 @@ def generate_monthly_recap(db, owner=None):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "Rekap Bulan Ini", owner=owner)
+    return _generate_recap(db, start, end, "Rekap Bulan Ini", owner=owner, view=view)
 
 
-def _generate_recap(db, start, end, title, owner=None):
+def _generate_recap(db, start, end, title, owner=None, view="detail"):
     transactions = get_transaction_between(db, start, end)
 
     if owner:
@@ -67,6 +67,16 @@ def _generate_recap(db, start, end, title, owner=None):
     if not transactions:
         return f"📊 *{title}*\n\nBelum ada transaksi."
 
+    if view == "category":
+        return _generate_category_summary(transactions, title)
+
+    if view == "owner":
+        return _generate_owner_summary(transactions, title)
+
+    return _generate_detail_recap(transactions, title)
+
+
+def _generate_detail_recap(transactions, title):
     income_items = [trx for trx in transactions if trx.type == "income"]
     expense_items = [trx for trx in transactions if trx.type == "expense"]
 
@@ -87,6 +97,85 @@ def _generate_recap(db, start, end, title, owner=None):
 
     _append_grouped_section(lines, "🟢 *Income*", income_items)
     _append_grouped_section(lines, "🔴 *Expense*", expense_items)
+
+    lines.append("━━━━━━━━━━━━")
+    lines.append("✅ Selesai")
+
+    return "\n".join(lines)
+
+
+def _generate_category_summary(transactions, title):
+    total_income = sum(trx.amount for trx in transactions if trx.type == "income")
+    total_expense = sum(trx.amount for trx in transactions if trx.type == "expense")
+    net = total_income - total_expense
+
+    grouped = defaultdict(int)
+
+    for trx in transactions:
+        if trx.type == "income":
+            grouped["income"] += trx.amount
+            continue
+
+        category = trx.category or DEFAULT_CATEGORY
+        if category == "legacy":
+            category = DEFAULT_CATEGORY
+        grouped[category] += trx.amount
+
+    lines = [
+        f"📊 *{title} - Kategori*",
+        "",
+        "💰 *Summary*",
+        f"Income  : {format_rupiah(total_income)}",
+        f"Expense : {format_rupiah(total_expense)}",
+        f"Net     : {format_rupiah(net)}",
+        "",
+        "━━━━━━━━━━━━",
+        "📌 *Kategori*",
+    ]
+
+    for category in sorted(grouped.keys(), key=category_sort_key):
+        lines.append(f"• {format_text(category)} — {format_rupiah(grouped[category])}")
+
+    lines.append("━━━━━━━━━━━━")
+    lines.append("✅ Selesai")
+
+    return "\n".join(lines)
+
+
+def _generate_owner_summary(transactions, title):
+    total_income = sum(trx.amount for trx in transactions if trx.type == "income")
+    total_expense = sum(trx.amount for trx in transactions if trx.type == "expense")
+    net = total_income - total_expense
+
+    grouped = defaultdict(lambda: {"income": 0, "expense": 0})
+
+    for trx in transactions:
+        name = trx.name or "Kita"
+        if trx.type == "income":
+            grouped[name]["income"] += trx.amount
+        else:
+            grouped[name]["expense"] += trx.amount
+
+    lines = [
+        f"📊 *{title} - Orang*",
+        "",
+        "💰 *Summary*",
+        f"Income  : {format_rupiah(total_income)}",
+        f"Expense : {format_rupiah(total_expense)}",
+        f"Net     : {format_rupiah(net)}",
+        "",
+        "━━━━━━━━━━━━",
+        "👥 *Per Orang*",
+    ]
+
+    for name in sorted(grouped.keys()):
+        income = grouped[name]["income"]
+        expense = grouped[name]["expense"]
+        subtotal = income - expense
+        lines.append(f"{person_icon(name)} {format_text(name)}")
+        lines.append(f"  Income  : {format_rupiah(income)}")
+        lines.append(f"  Expense : {format_rupiah(expense)}")
+        lines.append(f"  Net     : {format_rupiah(subtotal)}")
 
     lines.append("━━━━━━━━━━━━")
     lines.append("✅ Selesai")
@@ -155,6 +244,9 @@ def person_icon(name: str) -> str:
 
 
 def category_sort_key(category: str):
+    if category == "income":
+        return -1
+
     if category in CATEGORY_ORDER:
         return CATEGORY_ORDER.index(category)
 
