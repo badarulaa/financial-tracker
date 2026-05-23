@@ -89,7 +89,7 @@ def _append_grouped_section(lines, title, transactions):
     section_total = 0
 
     for category, category_items in grouped_by_category.items():
-        lines.append(category.capitalize())
+        lines.append(format_text(category))
 
         grouped_by_name = defaultdict(list)
         for trx in category_items:
@@ -98,23 +98,30 @@ def _append_grouped_section(lines, title, transactions):
         category_total = 0
 
         for name, name_items in grouped_by_name.items():
-            lines.append(f"{name}")
+            lines.append(format_text(name))
 
             name_total = 0
             for trx in name_items:
                 amount = format_rupiah(trx.amount)
-                lines.append(f"• {trx.description} {amount}")
+                lines.append(f"• {format_text(trx.description)} {amount}")
                 name_total += trx.amount
 
-            lines.append(f"Subtotal {name}: {format_rupiah(name_total)}")
+            lines.append(f"Subtotal {format_text(name)}: {format_rupiah(name_total)}")
             category_total += name_total
 
-        lines.append(f"Subtotal {category.capitalize()}: {format_rupiah(category_total)}")
+        lines.append(f"Subtotal {format_text(category)}: {format_rupiah(category_total)}")
         lines.append("")
 
         section_total += category_total
 
     return section_total
+
+
+def format_text(value) -> str:
+    if value is None:
+        return "-"
+
+    return str(value).replace("_", " ").strip().title()
 
 
 def format_rupiah(amount: int):
