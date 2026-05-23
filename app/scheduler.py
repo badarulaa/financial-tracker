@@ -9,7 +9,6 @@ scheduler = BackgroundScheduler()
 
 
 def weekly_recap_job():
-
     db = SessionLocal()
 
     try:
@@ -20,23 +19,22 @@ def weekly_recap_job():
         print("========================\n")
 
         # kirim ke kamu
-        send_whatsapp_message(settings.USER_PHONE, recap)
+        send_whatsapp_message(settings.USER_PHONE_OWNER, recap)
 
         # kirim ke istri
-        send_whatsapp_message(settings.WIFE_PHONE, recap)
+        send_whatsapp_message(settings.USER_PHONE_WIFE, recap)
 
     finally:
         db.close()
 
 
 def start_scheduler():
-
     scheduler.add_job(
         weekly_recap_job,
         trigger="cron",
         day_of_week="sun",   # setiap Minggu
         hour=21,
-        minute=0
+        minute=0,
     )
 
     scheduler.start()
