@@ -73,7 +73,7 @@ def _generate_recap(db, start, end, title):
     lines = [
         f"📊 *{title}*",
         "",
-        "💰 *Ringkasan*",
+        "💰 *Summary*",
         f"Income  : {format_rupiah(total_income)}",
         f"Expense : {format_rupiah(total_expense)}",
         f"Net     : {format_rupiah(net)}",
@@ -123,7 +123,7 @@ def _append_grouped_section(lines, title, transactions):
             name_items = grouped_by_name[name]
             name_total = sum(trx.amount for trx in name_items)
 
-            lines.append(f"👤 {format_text(name)} · {format_rupiah(name_total)}")
+            lines.append(f"{person_icon(name)} {format_text(name)} · {format_rupiah(name_total)}")
 
             for trx in name_items:
                 amount = format_rupiah(trx.amount)
@@ -136,6 +136,18 @@ def _append_grouped_section(lines, title, transactions):
     lines.append("")
 
     return section_total
+
+
+def person_icon(name: str) -> str:
+    normalized_name = str(name).strip().lower()
+
+    if normalized_name == "dar":
+        return "👨🏻‍🦱"
+
+    if normalized_name == "ai":
+        return "🧕🏻"
+
+    return "👤"
 
 
 def category_sort_key(category: str):
