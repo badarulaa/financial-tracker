@@ -7,6 +7,16 @@ from app.crud import get_transaction_between
 WIB = ZoneInfo("Asia/Jakarta")
 UTC = ZoneInfo("UTC")
 DEFAULT_CATEGORY = "other"
+CATEGORY_ORDER = [
+    "makanan",
+    "transportasi",
+    "tagihan",
+    "belanja",
+    "kesehatan",
+    "rumah",
+    "hiburan",
+    "other",
+]
 
 
 def generate_daily_recap(db):
@@ -17,7 +27,7 @@ def generate_daily_recap(db):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "📊 Rekap Hari Ini")
+    return _generate_recap(db, start, end, "Rekap Hari Ini")
 
 
 def generate_weekly_recap(db):
@@ -29,7 +39,7 @@ def generate_weekly_recap(db):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "📊 Rekap Minggu Ini")
+    return _generate_recap(db, start, end, "Rekap Minggu Ini")
 
 
 def generate_monthly_recap(db):
@@ -44,28 +54,38 @@ def generate_monthly_recap(db):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "📅 Rekap Bulan Ini")
+    return _generate_recap(db, start, end, "Rekap Bulan Ini")
 
 
 def _generate_recap(db, start, end, title):
     transactions = get_transaction_between(db, start, end)
 
     if not transactions:
-        return f"{title}\n\nBelum ada transaksi."
+        return f"📊 *{title}*\n\nBelum ada transaksi."
 
     income_items = [trx for trx in transactions if trx.type == "income"]
     expense_items = [trx for trx in transactions if trx.type == "expense"]
 
-    lines = [title, ""]
-
-    total_income = _append_grouped_section(lines, "🟢 Income", income_items)
-    total_expense = _append_grouped_section(lines, "🔴 Expense", expense_items)
+    total_income = sum(trx.amount for trx in income_items)
+    total_expense = sum(trx.amount for trx in expense_items)
     net = total_income - total_expense
 
-    lines.append("────────")
-    lines.append(f"Total Income: {format_rupiah(total_income)}")
-    lines.append(f"Total Expense: {format_rupiah(total_expense)}")
-    lines.append(f"Net: {format_rupiah(net)}")
+    lines = [
+        f"📊 *{title}*",
+        "",
+        "💰 *Ringkasan*",
+        f"Income  : {format_rupiah(total_income)}",
+        f"Expense : {format_rupiah(total_expense)}",
+        f"Net     : {format_rupiah(net)}",
+        "",
+        "━━━━━━━━━━━━",
+    ]
+
+    _append_grouped_section(lines, "🟢 *Income*", income_items)
+    _append_grouped_section(lines, "🔴 *Expense*", expense_items)
+
+    lines.append("━━━━━━━━━━━━")
+    lines.append("✅ Selesai")
 
     return "\n".join(lines)
 
@@ -74,7 +94,7 @@ def _append_grouped_section(lines, title, transactions):
     lines.append(title)
 
     if not transactions:
-        lines.append("Belum ada.")
+        lines.append("_Belum ada._")
         lines.append("")
         return 0
 
@@ -88,33 +108,45 @@ def _append_grouped_section(lines, title, transactions):
 
     section_total = 0
 
-    for category, category_items in grouped_by_category.items():
-        lines.append(format_text(category))
+    for category in sorted(grouped_by_category.keys(), key=category_sort_key):
+        category_items = grouped_by_category[category]
+        category_total = sum(trx.amount for trx in category_items)
+
+        lines.append("")
+        lines.append(f"📌 *{format_text(category)}* — {format_rupiah(category_total)}")
 
         grouped_by_name = defaultdict(list)
         for trx in category_items:
             grouped_by_name[trx.name or "Kita"].append(trx)
 
-        category_total = 0
+        for name in sorted(grouped_by_name.keys()):
+            name_items = grouped_by_name[name]
+            name_total = sum(trx.amount for trx in name_items)
 
-        for name, name_items in grouped_by_name.items():
-            lines.append(format_text(name))
+            lines.append(f"👤 {format_text(name)} · {format_rupiah(name_total)}")
 
-            name_total = 0
             for trx in name_items:
                 amount = format_rupiah(trx.amount)
-                lines.append(f"• {format_text(trx.description)} {amount}")
-                name_total += trx.amount
-
-            lines.append(f"Subtotal {format_text(name)}: {format_rupiah(name_total)}")
-            category_total += name_total
-
-        lines.append(f"Subtotal {format_text(category)}: {format_rupiah(category_total)}")
-        lines.append("")
+                lines.append(f"  • {format_text(trx.description)} — {amount}")
 
         section_total += category_total
 
+    lines.append("")
+    lines.append(f"*Subtotal {strip_markdown(title)}*: {format_rupiah(section_total)}")
+    lines.append("")
+
     return section_total
+
+
+def category_sort_key(category: str):
+    if category in CATEGORY_ORDER:
+        return CATEGORY_ORDER.index(category)
+
+    return len(CATEGORY_ORDER)
+
+
+def strip_markdown(value: str) -> str:
+    return value.replace("*", "").replace("🟢", "").replace("🔴", "").strip()
 
 
 def format_text(value) -> str:
@@ -125,4 +157,4 @@ def format_text(value) -> str:
 
 
 def format_rupiah(amount: int):
-    return f"{amount:,.0f}".replace(",", ".")
+    return f"Rp {amount:,.0f}".replace(",", ".")
