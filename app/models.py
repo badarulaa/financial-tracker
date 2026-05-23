@@ -3,17 +3,6 @@ from datetime import datetime
 from app.database import Base
 
 
-<<<<<<< HEAD
-  id = Column(Integer, primary_key=True, index=True)
-  name = Column(String(50), nullable=False)
-
-  type = Column(String(10), nullable=False, default="expense")
-  category = Column(String(50), nullable=False, default="other")
-
-  description = Column(Text, nullable=True)
-  amount = Column(Integer, nullable=False)
-  created_at = Column(DateTime, default=datetime.utcnow)
-=======
 class Transaction(Base):
     __tablename__ = "transactions"
 
@@ -24,4 +13,3 @@ class Transaction(Base):
     description = Column(Text, nullable=True)
     amount = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
->>>>>>> f56b3f36128f503cdff548dcef3aabd379701c9f
