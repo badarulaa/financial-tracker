@@ -6,6 +6,7 @@ from app.crud import get_transaction_between
 
 WIB = ZoneInfo("Asia/Jakarta")
 UTC = ZoneInfo("UTC")
+DEFAULT_CATEGORY = "other"
 
 
 def generate_daily_recap(db):
@@ -78,28 +79,41 @@ def _append_grouped_section(lines, title, transactions):
         lines.append("")
         return 0
 
-    grouped = defaultdict(list)
+    grouped_by_category = defaultdict(list)
 
     for trx in transactions:
-        category = trx.category or "legacy"
-        grouped[category].append(trx)
+        category = trx.category or DEFAULT_CATEGORY
+        if category == "legacy":
+            category = DEFAULT_CATEGORY
+        grouped_by_category[category].append(trx)
 
     section_total = 0
 
-    for category, items in grouped.items():
+    for category, category_items in grouped_by_category.items():
         lines.append(category.capitalize())
 
-        subtotal = 0
+        grouped_by_name = defaultdict(list)
+        for trx in category_items:
+            grouped_by_name[trx.name or "Kita"].append(trx)
 
-        for trx in items:
-            amount = format_rupiah(trx.amount)
-            lines.append(f"• {trx.description} {amount}")
-            subtotal += trx.amount
+        category_total = 0
 
-        lines.append(f"Subtotal: {format_rupiah(subtotal)}")
+        for name, name_items in grouped_by_name.items():
+            lines.append(f"{name}")
+
+            name_total = 0
+            for trx in name_items:
+                amount = format_rupiah(trx.amount)
+                lines.append(f"• {trx.description} {amount}")
+                name_total += trx.amount
+
+            lines.append(f"Subtotal {name}: {format_rupiah(name_total)}")
+            category_total += name_total
+
+        lines.append(f"Subtotal {category.capitalize()}: {format_rupiah(category_total)}")
         lines.append("")
 
-        section_total += subtotal
+        section_total += category_total
 
     return section_total
 
