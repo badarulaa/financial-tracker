@@ -6,6 +6,76 @@ TYPE_ALIASES = INCOME_ALIASES | EXPENSE_ALIASES
 DEFAULT_CATEGORY = "other"
 DEFAULT_NAME = "Kita"
 
+CATEGORY_KEYWORDS = {
+    "makanan": [
+        "makan",
+        "makanan",
+        "nasi",
+        "ayam",
+        "kopi",
+        "minum",
+        "minuman",
+        "gofood",
+        "grabfood",
+        "resto",
+        "restaurant",
+        "bakso",
+        "mie",
+        "sate",
+        "geprek",
+        "padang",
+        "warteg",
+        "martabak",
+        "roti",
+        "snack",
+        "jajan",
+    ],
+    "transportasi": [
+        "grab",
+        "gojek",
+        "bensin",
+        "tol",
+        "parkir",
+        "ojek",
+        "taxi",
+        "taksi",
+        "kereta",
+        "bus",
+    ],
+    "tagihan": [
+        "listrik",
+        "wifi",
+        "internet",
+        "pdam",
+        "air",
+        "pulsa",
+        "token",
+        "pln",
+        "bpjs",
+    ],
+    "belanja": [
+        "shopee",
+        "tokopedia",
+        "indomaret",
+        "alfamart",
+        "belanja",
+        "mall",
+        "baju",
+        "celana",
+        "sepatu",
+    ],
+    "kesehatan": [
+        "obat",
+        "dokter",
+        "klinik",
+        "rs",
+        "rumah sakit",
+        "vitamin",
+        "apotik",
+        "apotek",
+    ],
+}
+
 
 def parse_message(text: str) -> Dict[str, Any]:
     text = text.strip()
@@ -88,7 +158,20 @@ def _parse_legacy(tokens, amount):
         name = tokens[0]
         description = " ".join(tokens[1:-1])
 
-    return _transaction_result("expense", DEFAULT_CATEGORY, name, description, amount, True)
+    category = _detect_category(description)
+
+    return _transaction_result("expense", category, name, description, amount, True)
+
+
+def _detect_category(description: str) -> str:
+    desc = description.lower()
+
+    for category, keywords in CATEGORY_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword in desc:
+                return category
+
+    return DEFAULT_CATEGORY
 
 
 def _transaction_result(trx_type: str, category: str, name: str, description: str, amount: int, is_legacy: bool):
