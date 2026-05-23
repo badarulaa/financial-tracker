@@ -62,7 +62,6 @@ def _generate_recap(db, start, end, title, owner=None, view="detail"):
 
     if owner:
         transactions = [trx for trx in transactions if normalize_name(trx.name) == normalize_name(owner)]
-        title = f"{title} - {format_text(owner)}"
 
     if not transactions:
         return f"📊 *{title}*\n\nBelum ada transaksi."
@@ -71,7 +70,7 @@ def _generate_recap(db, start, end, title, owner=None, view="detail"):
         return _generate_category_summary(transactions, title)
 
     if view == "owner":
-        return _generate_owner_summary(transactions, title)
+        return _generate_owner_summary(transactions, title, owner=owner)
 
     return _generate_detail_recap(transactions, title)
 
@@ -122,7 +121,7 @@ def _generate_category_summary(transactions, title):
         grouped[category] += trx.amount
 
     lines = [
-        f"📊 *{title} - Kategori*",
+        f"📊 *{title}*",
         "",
         "💰 *Summary*",
         f"Income  : {format_rupiah(total_income)}",
@@ -130,7 +129,6 @@ def _generate_category_summary(transactions, title):
         f"Net     : {format_rupiah(net)}",
         "",
         "━━━━━━━━━━━━",
-        "📌 *Kategori*",
     ]
 
     for category in sorted(grouped.keys(), key=category_sort_key):
@@ -142,43 +140,29 @@ def _generate_category_summary(transactions, title):
     return "\n".join(lines)
 
 
-def _generate_owner_summary(transactions, title):
+def _generate_owner_summary(transactions, title, owner=None):
     total_income = sum(trx.amount for trx in transactions if trx.type == "income")
     total_expense = sum(trx.amount for trx in transactions if trx.type == "expense")
     net = total_income - total_expense
 
-    grouped = defaultdict(lambda: {"income": 0, "expense": 0})
-
-    for trx in transactions:
-        name = trx.name or "Kita"
-        if trx.type == "income":
-            grouped[name]["income"] += trx.amount
-        else:
-            grouped[name]["expense"] += trx.amount
+    if owner:
+        display_name = format_text(owner)
+        display_icon = person_icon(owner)
+    else:
+        display_name = "Total"
+        display_icon = "👥"
 
     lines = [
-        f"📊 *{title} - Orang*",
+        f"📊 *{title}*",
         "",
-        "💰 *Summary*",
+        f"{display_icon} *{display_name}*",
+        "",
         f"Income  : {format_rupiah(total_income)}",
         f"Expense : {format_rupiah(total_expense)}",
         f"Net     : {format_rupiah(net)}",
         "",
-        "━━━━━━━━━━━━",
-        "👥 *Per Orang*",
+        "✅ Selesai",
     ]
-
-    for name in sorted(grouped.keys()):
-        income = grouped[name]["income"]
-        expense = grouped[name]["expense"]
-        subtotal = income - expense
-        lines.append(f"{person_icon(name)} {format_text(name)}")
-        lines.append(f"  Income  : {format_rupiah(income)}")
-        lines.append(f"  Expense : {format_rupiah(expense)}")
-        lines.append(f"  Net     : {format_rupiah(subtotal)}")
-
-    lines.append("━━━━━━━━━━━━")
-    lines.append("✅ Selesai")
 
     return "\n".join(lines)
 
