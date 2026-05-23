@@ -1,4 +1,4 @@
-from app.parser import parse_message
+from app.parser import parse_message, get_category_help
 from app.crud import create_transaction, delete_last_transaction
 from app.recap import (
     generate_daily_recap,
@@ -36,17 +36,21 @@ def handle_message(db, text: str) -> str:
     if parsed["type"] == "command":
         command = parsed["command"]
 
+        if command == "category_help":
+            return get_category_help()
+
         if command == "rekap":
             scope = parsed["scope"]
+            owner = parsed.get("owner")
 
             if scope == "daily":
-                return generate_daily_recap(db)
+                return generate_daily_recap(db, owner=owner)
 
             if scope == "weekly":
-                return generate_weekly_recap(db)
+                return generate_weekly_recap(db, owner=owner)
 
             if scope == "monthly":
-                return generate_monthly_recap(db)
+                return generate_monthly_recap(db, owner=owner)
 
         if command == "delete_last":
             deleted = delete_last_transaction(db)
