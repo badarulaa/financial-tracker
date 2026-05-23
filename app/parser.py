@@ -123,19 +123,30 @@ def _parse_command(text: str):
 
     if text.startswith("rekap"):
         owner = _parse_owner_filter(text)
+        view = _parse_recap_view(text, owner)
 
         if "hari ini" in text:
-            return {"type": "command", "command": "rekap", "scope": "daily", "owner": owner}
+            return {"type": "command", "command": "rekap", "scope": "daily", "owner": owner, "view": view}
         if "minggu ini" in text:
-            return {"type": "command", "command": "rekap", "scope": "weekly", "owner": owner}
+            return {"type": "command", "command": "rekap", "scope": "weekly", "owner": owner, "view": view}
         if "bulan ini" in text:
-            return {"type": "command", "command": "rekap", "scope": "monthly", "owner": owner}
+            return {"type": "command", "command": "rekap", "scope": "monthly", "owner": owner, "view": view}
         return _error("Format rekap tidak dikenali.")
 
     if text.startswith("hapus terakhir"):
         return {"type": "command", "command": "delete_last"}
 
     return None
+
+
+def _parse_recap_view(text: str, owner):
+    if "kategori" in set(text.split()):
+        return "category"
+
+    if owner:
+        return "owner"
+
+    return "detail"
 
 
 def _parse_owner_filter(text: str):
