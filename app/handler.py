@@ -42,15 +42,16 @@ def handle_message(db, text: str) -> str:
         if command == "rekap":
             scope = parsed["scope"]
             owner = parsed.get("owner")
+            view = parsed.get("view", "detail")
 
             if scope == "daily":
-                return generate_daily_recap(db, owner=owner)
+                return generate_daily_recap(db, owner=owner, view=view)
 
             if scope == "weekly":
-                return generate_weekly_recap(db, owner=owner)
+                return generate_weekly_recap(db, owner=owner, view=view)
 
             if scope == "monthly":
-                return generate_monthly_recap(db, owner=owner)
+                return generate_monthly_recap(db, owner=owner, view=view)
 
         if command == "delete_last":
             deleted = delete_last_transaction(db)
