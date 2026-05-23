@@ -9,7 +9,7 @@ def create_transaction(
     description: str,
     amount: int,
     transaction_type: str = "expense",
-    category: str = "legacy",
+    category: str = "other",
 ):
     transaction = Transaction(
         name=name,
