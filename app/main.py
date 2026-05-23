@@ -63,6 +63,11 @@ async def receive_message(request: Request):
     message = value["messages"][0]["text"]["body"]
     sender = value["messages"][0]["from"]
 
+    if sender == settings.USER_PHONE_OWNER:
+        message = f"dar {message}"
+    elif sender == settings.USER_PHONE_WIFE:
+        message = f"ai {message}"
+
     print("Incoming message:", message)
     print("Sender:", sender)
 
