@@ -19,7 +19,7 @@ CATEGORY_ORDER = [
 ]
 
 
-def generate_daily_recap(db):
+def generate_daily_recap(db, owner=None):
     now = datetime.now(WIB)
     start_local = now.replace(hour=0, minute=0, second=0, microsecond=0)
     end_local = start_local + timedelta(days=1)
@@ -27,10 +27,10 @@ def generate_daily_recap(db):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "Rekap Hari Ini")
+    return _generate_recap(db, start, end, "Rekap Hari Ini", owner=owner)
 
 
-def generate_weekly_recap(db):
+def generate_weekly_recap(db, owner=None):
     now = datetime.now(WIB)
     start_local = now - timedelta(days=now.weekday())
     start_local = start_local.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -39,10 +39,10 @@ def generate_weekly_recap(db):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "Rekap Minggu Ini")
+    return _generate_recap(db, start, end, "Rekap Minggu Ini", owner=owner)
 
 
-def generate_monthly_recap(db):
+def generate_monthly_recap(db, owner=None):
     now = datetime.now(WIB)
     start_local = datetime(now.year, now.month, 1, tzinfo=WIB)
 
@@ -54,11 +54,15 @@ def generate_monthly_recap(db):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "Rekap Bulan Ini")
+    return _generate_recap(db, start, end, "Rekap Bulan Ini", owner=owner)
 
 
-def _generate_recap(db, start, end, title):
+def _generate_recap(db, start, end, title, owner=None):
     transactions = get_transaction_between(db, start, end)
+
+    if owner:
+        transactions = [trx for trx in transactions if normalize_name(trx.name) == normalize_name(owner)]
+        title = f"{title} - {format_text(owner)}"
 
     if not transactions:
         return f"📊 *{title}*\n\nBelum ada transaksi."
@@ -155,6 +159,10 @@ def category_sort_key(category: str):
         return CATEGORY_ORDER.index(category)
 
     return len(CATEGORY_ORDER)
+
+
+def normalize_name(value) -> str:
+    return str(value or "").strip().lower()
 
 
 def strip_markdown(value: str) -> str:
