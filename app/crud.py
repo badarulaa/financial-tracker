@@ -2,11 +2,13 @@ from sqlalchemy.orm import Session
 from datetime import datetime, date
 from app.models import Transaction
 
-def create_transaction(db: Session, name: str, description: str, amount: int):
+def create_transaction(db: Session, name: str, description: str, amount: int, type: str="expense", category: str="other"):
   transaction = Transaction(
     name=name,
     description=description,
     amount=amount,
+    type=type,
+    category=category
   )
   db.add(transaction)
   db.commit()

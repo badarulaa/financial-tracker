@@ -20,10 +20,10 @@ def weekly_recap_job():
         print("========================\n")
 
         # kirim ke kamu
-        send_whatsapp_message(settings.USER_PHONE, recap)
+        send_whatsapp_message(settings.USER_PHONE_OWNER, recap)
 
         # kirim ke istri
-        send_whatsapp_message(settings.WIFE_PHONE, recap)
+        send_whatsapp_message(settings.USER_PHONE_WIFE, recap)
 
     finally:
         db.close()

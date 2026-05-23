@@ -3,8 +3,10 @@ from zoneinfo import ZoneInfo
 from collections import defaultdict
 from app.crud import get_transaction_between
 
+
 WIB = ZoneInfo("Asia/Jakarta")
 UTC = ZoneInfo("UTC")
+
 
 def generate_daily_recap(db):
     now = datetime.now(WIB)
@@ -30,7 +32,6 @@ def generate_weekly_recap(db):
 
 
 def generate_monthly_recap(db):
-
     now = datetime.now(WIB)
 
     start_local = datetime(now.year, now.month, 1, tzinfo=WIB)
@@ -43,30 +44,60 @@ def generate_monthly_recap(db):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "📅 Rekap Bulan Ini\n")
+    return _generate_recap(db, start, end, "📅 Rekap Bulan Ini")
 
 
 def _generate_recap(db, start, end, title):
-
     transactions = get_transaction_between(db, start, end)
 
     if not transactions:
         return f"{title}\n\nBelum ada transaksi."
 
+    income_items = [trx for trx in transactions if trx.type == "income"]
+    expense_items = [trx for trx in transactions if trx.type == "expense"]
+
+    lines = [title, ""]
+
+    total_income = _append_grouped_section(
+        lines,
+        "🟢 Income",
+        income_items,
+    )
+
+    total_expense = _append_grouped_section(
+        lines,
+        "🔴 Expense",
+        expense_items,
+    )
+
+    net = total_income - total_expense
+
+    lines.append("────────")
+    lines.append(f"Total Income: {format_rupiah(total_income)}")
+    lines.append(f"Total Expense: {format_rupiah(total_expense)}")
+    lines.append(f"Net: {format_rupiah(net)}")
+
+    return "\n".join(lines)
+
+
+def _append_grouped_section(lines, title, transactions):
+    lines.append(title)
+
+    if not transactions:
+        lines.append("Belum ada.")
+        lines.append("")
+        return 0
+
     grouped = defaultdict(list)
 
     for trx in transactions:
-        grouped[trx.name].append(trx)
+        category = trx.category or "legacy"
+        grouped[category].append(trx)
 
-    lines = []
-    lines.append(title)
-    lines.append("")
+    section_total = 0
 
-    grand_total = 0
-
-    for name, items in grouped.items():
-
-        lines.append(f"{name}")
+    for category, items in grouped.items():
+        lines.append(category.capitalize())
 
         subtotal = 0
 
@@ -78,12 +109,9 @@ def _generate_recap(db, start, end, title):
         lines.append(f"Subtotal: {format_rupiah(subtotal)}")
         lines.append("")
 
-        grand_total += subtotal
+        section_total += subtotal
 
-    lines.append("────────")
-    lines.append(f"Total: {format_rupiah(grand_total)}")
-
-    return "\n".join(lines)
+    return section_total
 
 
 def format_rupiah(amount: int):
