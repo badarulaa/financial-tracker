@@ -94,8 +94,7 @@ def _generate_detail_recap(transactions, title):
         "━━━━━━━━━━━━",
     ]
 
-    _append_grouped_section(lines, "🟢 *Income*", income_items)
-    _append_grouped_section(lines, "🔴 *Expense*", expense_items)
+    _append_owner_detail_section(lines, transactions)
 
     lines.append("━━━━━━━━━━━━")
     lines.append("✅ Selesai")
@@ -167,52 +166,26 @@ def _generate_owner_summary(transactions, title, owner=None):
     return "\n".join(lines)
 
 
-def _append_grouped_section(lines, title, transactions):
-    lines.append(title)
-
-    if not transactions:
-        lines.append("_Belum ada._")
-        lines.append("")
-        return 0
-
-    grouped_by_category = defaultdict(list)
+def _append_owner_detail_section(lines, transactions):
+    grouped_by_name = defaultdict(list)
 
     for trx in transactions:
-        category = trx.category or DEFAULT_CATEGORY
-        if category == "legacy":
-            category = DEFAULT_CATEGORY
-        grouped_by_category[category].append(trx)
+        grouped_by_name[trx.name or "Kita"].append(trx)
 
-    section_total = 0
+    for name in sorted(grouped_by_name.keys()):
+        name_items = grouped_by_name[name]
+        income_total = sum(trx.amount for trx in name_items if trx.type == "income")
+        expense_total = sum(trx.amount for trx in name_items if trx.type == "expense")
+        net_total = income_total - expense_total
 
-    for category in sorted(grouped_by_category.keys(), key=category_sort_key):
-        category_items = grouped_by_category[category]
-        category_total = sum(trx.amount for trx in category_items)
+        lines.append(f"{person_icon(name)} *{format_text(name)}* — {format_rupiah(net_total)}")
+
+        for trx in sorted(name_items, key=lambda item: item.created_at, reverse=True):
+            amount = format_rupiah(trx.amount)
+            sign = "+" if trx.type == "income" else "-"
+            lines.append(f"• {format_text(trx.description)} — {sign}{amount}")
 
         lines.append("")
-        lines.append(f"📌 *{format_text(category)}* — {format_rupiah(category_total)}")
-
-        grouped_by_name = defaultdict(list)
-        for trx in category_items:
-            grouped_by_name[trx.name or "Kita"].append(trx)
-
-        for name in sorted(grouped_by_name.keys()):
-            name_items = grouped_by_name[name]
-            name_total = sum(trx.amount for trx in name_items)
-
-            lines.append(f"{person_icon(name)} {format_text(name)} · {format_rupiah(name_total)}")
-
-            for trx in name_items:
-                amount = format_rupiah(trx.amount)
-                lines.append(f"  • {format_text(trx.description)} — {amount}")
-
-        section_total += category_total
-
-    lines.append("")
-    lines.append(f"*Subtotal {strip_markdown(title)}*: {format_rupiah(section_total)}")
-    lines.append("")
-
-    return section_total
 
 
 def person_icon(name: str) -> str:
@@ -239,10 +212,6 @@ def category_sort_key(category: str):
 
 def normalize_name(value) -> str:
     return str(value or "").strip().lower()
-
-
-def strip_markdown(value: str) -> str:
-    return value.replace("*", "").replace("🟢", "").replace("🔴", "").strip()
 
 
 def format_text(value) -> str:
