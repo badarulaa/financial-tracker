@@ -7,6 +7,7 @@ from app.crud import get_transaction_between
 WIB = ZoneInfo("Asia/Jakarta")
 UTC = ZoneInfo("UTC")
 DEFAULT_CATEGORY = "other"
+DETAIL_TRANSACTION_LIMIT = 10
 CATEGORY_ORDER = [
     "makanan",
     "transportasi",
@@ -125,6 +126,10 @@ def _generate_detail_recap(transactions, title):
     total_expense = sum(trx.amount for trx in expense_items)
     net = total_income - total_expense
 
+    sorted_transactions = sorted(transactions, key=lambda item: item.created_at, reverse=True)
+    shown_transactions = sorted_transactions[:DETAIL_TRANSACTION_LIMIT]
+    hidden_count = max(len(sorted_transactions) - DETAIL_TRANSACTION_LIMIT, 0)
+
     lines = [
         f"📊 *{title}*",
         "",
@@ -133,10 +138,15 @@ def _generate_detail_recap(transactions, title):
         f"Expense : {format_rupiah(total_expense)}",
         f"Net     : {format_rupiah(net)}",
         "",
+        f"🧾 *10 Transaksi Terakhir*",
         "━━━━━━━━━━━━",
     ]
 
-    _append_owner_detail_section(lines, transactions)
+    _append_owner_detail_section(lines, shown_transactions)
+
+    if hidden_count:
+        lines.append(f"...dan {hidden_count} transaksi lainnya")
+        lines.append("")
 
     lines.append("━━━━━━━━━━━━")
     lines.append("✅ Selesai")
@@ -215,14 +225,14 @@ def _append_owner_detail_section(lines, transactions):
         grouped_by_name[trx.name or "Kita"].append(trx)
 
     for name in sorted(grouped_by_name.keys()):
-        name_items = grouped_by_name[name]
+        name_items = sorted(grouped_by_name[name], key=lambda item: item.created_at, reverse=True)
         income_total = sum(trx.amount for trx in name_items if trx.type == "income")
         expense_total = sum(trx.amount for trx in name_items if trx.type == "expense")
         net_total = income_total - expense_total
 
         lines.append(f"{person_icon(name)} *{format_text(name)}* — {format_rupiah(net_total)}")
 
-        for trx in sorted(name_items, key=lambda item: item.created_at, reverse=True):
+        for trx in name_items:
             amount = format_rupiah(trx.amount)
             sign = "+" if trx.type == "income" else "-"
             lines.append(f"• {format_text(trx.description)} — {sign}{amount}")
