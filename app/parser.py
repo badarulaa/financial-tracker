@@ -130,8 +130,14 @@ def _parse_command(text: str):
 
         if "hari ini" in text:
             return {"type": "command", "command": "rekap", "scope": "daily", "owner": owner, "view": view}
+        if "kemarin" in text:
+            return {"type": "command", "command": "rekap", "scope": "yesterday", "owner": owner, "view": view}
+        if "minggu lalu" in text:
+            return {"type": "command", "command": "rekap", "scope": "last_week", "owner": owner, "view": view}
         if "minggu ini" in text:
             return {"type": "command", "command": "rekap", "scope": "weekly", "owner": owner, "view": view}
+        if "bulan lalu" in text:
+            return {"type": "command", "command": "rekap", "scope": "last_month", "owner": owner, "view": view}
         if "bulan ini" in text:
             return {"type": "command", "command": "rekap", "scope": "monthly", "owner": owner, "view": view}
         return _unknown_input_error()
