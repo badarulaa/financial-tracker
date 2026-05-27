@@ -7,6 +7,7 @@ from app.recap import (
     generate_last_week_recap,
     generate_monthly_recap,
     generate_last_month_recap,
+    generate_current_period_balance,
 )
 
 
@@ -33,13 +34,15 @@ def handle_message(db, text: str) -> str:
         )
 
         label = "Income" if parsed["transaction_type"] == "income" else "Expense"
+        balance = generate_current_period_balance(db)
 
         return (
             f"✅ {label} dicatat\n"
             f"Nama: {format_text(parsed['name'])}\n"
             f"Kategori: {format_text(parsed['category'])}\n"
             f"Detail: {format_text(parsed['description'])}\n"
-            f"Nominal: {format_rupiah(parsed['amount'])}"
+            f"Nominal: {format_rupiah(parsed['amount'])}\n"
+            f"\n{balance}"
         )
 
     if parsed["type"] == "command":
@@ -142,6 +145,9 @@ def get_help_text() -> str:
         "",
         "*Format Nominal*",
         "Bisa pakai: 10k, 25rb, 2.5jt, atau 25000.",
+        "",
+        "*Catatan Periode Bulanan*",
+        "Rekap bulan ini pakai periode finansial tanggal 26 - 25, bukan kalender 1 - 31.",
     ])
 
 
