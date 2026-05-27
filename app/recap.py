@@ -30,6 +30,18 @@ def generate_daily_recap(db, owner=None, view="detail"):
     return _generate_recap(db, start, end, "Rekap Hari Ini", owner=owner, view=view)
 
 
+def generate_yesterday_recap(db, owner=None, view="detail"):
+    now = datetime.now(WIB)
+    today_local = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_local = today_local - timedelta(days=1)
+    end_local = today_local
+
+    start = start_local.astimezone(UTC).replace(tzinfo=None)
+    end = end_local.astimezone(UTC).replace(tzinfo=None)
+
+    return _generate_recap(db, start, end, "Rekap Kemarin", owner=owner, view=view)
+
+
 def generate_weekly_recap(db, owner=None, view="detail"):
     now = datetime.now(WIB)
     start_local = now - timedelta(days=now.weekday())
@@ -40,6 +52,19 @@ def generate_weekly_recap(db, owner=None, view="detail"):
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
     return _generate_recap(db, start, end, "Rekap Minggu Ini", owner=owner, view=view)
+
+
+def generate_last_week_recap(db, owner=None, view="detail"):
+    now = datetime.now(WIB)
+    this_week_start = now - timedelta(days=now.weekday())
+    this_week_start = this_week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_local = this_week_start - timedelta(days=7)
+    end_local = this_week_start
+
+    start = start_local.astimezone(UTC).replace(tzinfo=None)
+    end = end_local.astimezone(UTC).replace(tzinfo=None)
+
+    return _generate_recap(db, start, end, "Rekap Minggu Lalu", owner=owner, view=view)
 
 
 def generate_monthly_recap(db, owner=None, view="detail"):
@@ -55,6 +80,23 @@ def generate_monthly_recap(db, owner=None, view="detail"):
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
     return _generate_recap(db, start, end, "Rekap Bulan Ini", owner=owner, view=view)
+
+
+def generate_last_month_recap(db, owner=None, view="detail"):
+    now = datetime.now(WIB)
+    this_month_start = datetime(now.year, now.month, 1, tzinfo=WIB)
+
+    if now.month == 1:
+        start_local = datetime(now.year - 1, 12, 1, tzinfo=WIB)
+    else:
+        start_local = datetime(now.year, now.month - 1, 1, tzinfo=WIB)
+
+    end_local = this_month_start
+
+    start = start_local.astimezone(UTC).replace(tzinfo=None)
+    end = end_local.astimezone(UTC).replace(tzinfo=None)
+
+    return _generate_recap(db, start, end, "Rekap Bulan Lalu", owner=owner, view=view)
 
 
 def _generate_recap(db, start, end, title, owner=None, view="detail"):
