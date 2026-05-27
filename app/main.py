@@ -99,7 +99,17 @@ def apply_sender_name(message: str, sender: str) -> str:
 
 
 def is_command(message: str) -> bool:
-    command_words = {"help", "bantuan", "command", "commands", "cara pakai", "kategori"}
+    command_words = {
+        "help",
+        "bantuan",
+        "command",
+        "commands",
+        "cara pakai",
+        "kategori",
+        "saldo",
+        "saldo bulan ini",
+        "saldo periode ini",
+    }
 
     return (
         message in command_words
