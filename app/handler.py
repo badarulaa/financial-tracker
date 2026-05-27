@@ -2,8 +2,11 @@ from app.parser import parse_message, get_category_help
 from app.crud import create_transaction, delete_last_transaction
 from app.recap import (
     generate_daily_recap,
+    generate_yesterday_recap,
     generate_weekly_recap,
+    generate_last_week_recap,
     generate_monthly_recap,
+    generate_last_month_recap,
 )
 
 
@@ -53,11 +56,20 @@ def handle_message(db, text: str) -> str:
             if scope == "daily":
                 return generate_daily_recap(db, owner=owner, view=view)
 
+            if scope == "yesterday":
+                return generate_yesterday_recap(db, owner=owner, view=view)
+
             if scope == "weekly":
                 return generate_weekly_recap(db, owner=owner, view=view)
 
+            if scope == "last_week":
+                return generate_last_week_recap(db, owner=owner, view=view)
+
             if scope == "monthly":
                 return generate_monthly_recap(db, owner=owner, view=view)
+
+            if scope == "last_month":
+                return generate_last_month_recap(db, owner=owner, view=view)
 
         if command == "delete_last":
             owner = parsed.get("owner")
@@ -102,19 +114,25 @@ def get_help_text() -> str:
         "",
         "*Rekap Detail Lengkap*",
         "• rekap hari ini",
+        "• rekap kemarin",
         "• rekap minggu ini",
+        "• rekap minggu lalu",
         "• rekap bulan ini",
+        "• rekap bulan lalu",
         "",
         "*Rekap Kategori*",
         "• rekap kategori hari ini",
+        "• rekap kategori kemarin",
         "• rekap kategori minggu ini",
+        "• rekap kategori minggu lalu",
         "• rekap kategori bulan ini",
+        "• rekap kategori bulan lalu",
         "",
         "*Rekap Per Orang*",
         "• rekap gw hari ini",
-        "• rekap dar minggu ini",
-        "• rekap istri hari ini",
-        "• rekap ai bulan ini",
+        "• rekap dar minggu lalu",
+        "• rekap istri kemarin",
+        "• rekap ai bulan lalu",
         "",
         "*Kategori & Hapus*",
         "• kategori",
