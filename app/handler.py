@@ -7,7 +7,13 @@ from app.recap import (
 )
 
 
+HELP_COMMANDS = {"help", "bantuan", "command", "commands", "cara pakai"}
+
+
 def handle_message(db, text: str) -> str:
+    if is_help_command(text):
+        return get_help_text()
+
     parsed = parse_message(text)
 
     if parsed["type"] == "error":
@@ -69,6 +75,56 @@ def handle_message(db, text: str) -> str:
             return "Tidak ada transaksi untuk dihapus."
 
     return "⚠ Perintah tidak dikenali."
+
+
+def is_help_command(text: str) -> bool:
+    return text.strip().lower() in HELP_COMMANDS
+
+
+def get_help_text() -> str:
+    return "\n".join([
+        "📖 *Help Financial Tracker*",
+        "",
+        "*Catat Pengeluaran*",
+        "Tulis detail + nominal. Nama Dar/Ai otomatis dari nomor WhatsApp.",
+        "• makan lawson 22k",
+        "• nasi padang 25rb",
+        "• grab kantor 35k",
+        "• listrik rumah 200k",
+        "• obat batuk 30k",
+        "• shopee kaos 100k",
+        "",
+        "*Catat Pemasukan*",
+        "• gaji kantor 10jt",
+        "• bonus kantor 500k",
+        "• freelance website 2jt",
+        "• in gaji kantor 10jt",
+        "",
+        "*Rekap Detail Lengkap*",
+        "• rekap hari ini",
+        "• rekap minggu ini",
+        "• rekap bulan ini",
+        "",
+        "*Rekap Kategori*",
+        "• rekap kategori hari ini",
+        "• rekap kategori minggu ini",
+        "• rekap kategori bulan ini",
+        "",
+        "*Rekap Per Orang*",
+        "• rekap gw hari ini",
+        "• rekap dar minggu ini",
+        "• rekap istri hari ini",
+        "• rekap ai bulan ini",
+        "",
+        "*Kategori & Hapus*",
+        "• kategori",
+        "• hapus terakhir",
+        "• hapus terakhir gw",
+        "• hapus terakhir istri",
+        "",
+        "*Format Nominal*",
+        "Bisa pakai: 10k, 25rb, 2.5jt, atau 25000.",
+    ])
 
 
 def format_text(value) -> str:
