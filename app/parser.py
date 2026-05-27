@@ -134,7 +134,7 @@ def _parse_command(text: str):
         return _error("Format rekap tidak dikenali.")
 
     if text.startswith("hapus terakhir"):
-        return {"type": "command", "command": "delete_last"}
+        return {"type": "command", "command": "delete_last", "owner": _parse_owner_filter(text)}
 
     return None
 
