@@ -89,6 +89,9 @@ def parse_message(text: str) -> Dict[str, Any]:
     if command_result:
         return command_result
 
+    if not _should_parse_transaction(lowered):
+        return _unknown_input_error()
+
     return _parse_transaction(lowered)
 
 
@@ -131,7 +134,7 @@ def _parse_command(text: str):
             return {"type": "command", "command": "rekap", "scope": "weekly", "owner": owner, "view": view}
         if "bulan ini" in text:
             return {"type": "command", "command": "rekap", "scope": "monthly", "owner": owner, "view": view}
-        return _error("Format rekap tidak dikenali.")
+        return _unknown_input_error()
 
     if text.startswith("hapus terakhir"):
         return {"type": "command", "command": "delete_last", "owner": _parse_owner_filter(text)}
@@ -161,14 +164,26 @@ def _parse_owner_filter(text: str):
     return None
 
 
+def _should_parse_transaction(text: str) -> bool:
+    tokens = text.split()
+    if not tokens:
+        return False
+
+    return _looks_like_amount(tokens[-1])
+
+
+def _looks_like_amount(value: str) -> bool:
+    return any(char.isdigit() for char in value)
+
+
 def _parse_transaction(text: str):
     tokens = text.split()
     if len(tokens) < 2:
-        return _error("Format salah. Gunakan format lama atau format baru.")
+        return _error("Format transaksi belum lengkap. Contoh: makan lawson 22k")
 
     amount = _parse_amount(tokens[-1])
     if amount is None:
-        return _error("Nominal tidak valid.")
+        return _error("Nominal tidak valid. Contoh nominal: 20k, 20rb, 2.5jt, atau 20000.")
 
     first = tokens[0]
     second = tokens[1] if len(tokens) > 1 else ""
@@ -296,6 +311,10 @@ def format_text(value) -> str:
     if value is None:
         return "-"
     return str(value).replace("_", " ").strip().title()
+
+
+def _unknown_input_error():
+    return _error("Command/input tidak dikenali. Ketik help untuk lihat daftar command dan contoh input.")
 
 
 def _error(message: str):
