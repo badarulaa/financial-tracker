@@ -54,14 +54,18 @@ def handle_message(db, text: str) -> str:
                 return generate_monthly_recap(db, owner=owner, view=view)
 
         if command == "delete_last":
-            deleted = delete_last_transaction(db)
+            owner = parsed.get("owner")
+            deleted = delete_last_transaction(db, name=owner)
             if deleted:
+                owner_label = f" milik {format_text(owner)}" if owner else ""
                 return (
-                    f"🗑️ Transaksi terakhir dihapus:\n"
+                    f"🗑️ Transaksi terakhir{owner_label} dihapus:\n"
                     f"{format_text(deleted.name)} - {format_text(deleted.type)} - "
                     f"{format_text(deleted.category)} - {format_text(deleted.description)} "
                     f"{format_rupiah(deleted.amount)}"
                 )
+            if owner:
+                return f"Tidak ada transaksi terakhir milik {format_text(owner)} untuk dihapus."
             return "Tidak ada transaksi untuk dihapus."
 
     return "⚠ Perintah tidak dikenali."
