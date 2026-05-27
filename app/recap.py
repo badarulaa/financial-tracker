@@ -149,13 +149,14 @@ def _generate_detail_recap(transactions, title, subtitle=None):
         "💰 *Summary*",
         f"Income  : {format_rupiah(total_income)}",
         f"Expense : {format_rupiah(total_expense)}",
-        f"Net     : {format_rupiah(net)}",
+        f"Sisa    : {format_rupiah(net)}",
         "",
         f"🧾 *10 Transaksi Terakhir Per Orang*",
         "━━━━━━━━━━━━",
     ])
 
-    _append_owner_detail_section(lines, transactions)
+    _append_transaction_type_section(lines, "🟢 *Pemasukan*", income_items)
+    _append_transaction_type_section(lines, "🔴 *Pengeluaran*", expense_items)
 
     lines.append("━━━━━━━━━━━━")
     lines.append("✅ Selesai")
@@ -189,7 +190,7 @@ def _generate_category_summary(transactions, title, subtitle=None):
         "💰 *Summary*",
         f"Income  : {format_rupiah(total_income)}",
         f"Expense : {format_rupiah(total_expense)}",
-        f"Net     : {format_rupiah(net)}",
+        f"Sisa    : {format_rupiah(net)}",
         "",
         "━━━━━━━━━━━━",
     ])
@@ -225,7 +226,7 @@ def _generate_owner_summary(transactions, title, owner=None, subtitle=None):
         "",
         f"Income  : {format_rupiah(total_income)}",
         f"Expense : {format_rupiah(total_expense)}",
-        f"Net     : {format_rupiah(net)}",
+        f"Sisa    : {format_rupiah(net)}",
         "",
         "✅ Selesai",
     ])
@@ -233,7 +234,14 @@ def _generate_owner_summary(transactions, title, owner=None, subtitle=None):
     return "\n".join(lines)
 
 
-def _append_owner_detail_section(lines, transactions):
+def _append_transaction_type_section(lines, title, transactions):
+    lines.append(title)
+
+    if not transactions:
+        lines.append("_Belum ada._")
+        lines.append("")
+        return
+
     grouped_by_name = defaultdict(list)
 
     for trx in transactions:
@@ -243,17 +251,13 @@ def _append_owner_detail_section(lines, transactions):
         all_name_items = sorted(grouped_by_name[name], key=lambda item: item.created_at, reverse=True)
         shown_items = all_name_items[:DETAIL_TRANSACTION_LIMIT]
         hidden_count = max(len(all_name_items) - DETAIL_TRANSACTION_LIMIT, 0)
+        name_total = sum(trx.amount for trx in all_name_items)
 
-        income_total = sum(trx.amount for trx in all_name_items if trx.type == "income")
-        expense_total = sum(trx.amount for trx in all_name_items if trx.type == "expense")
-        net_total = income_total - expense_total
-
-        lines.append(f"{person_icon(name)} *{format_text(name)}* — {format_rupiah(net_total)}")
+        lines.append(f"{person_icon(name)} *{format_text(name)}* — {format_rupiah(name_total)}")
 
         for trx in shown_items:
             amount = format_rupiah(trx.amount)
-            sign = "+" if trx.type == "income" else "-"
-            lines.append(f"• {format_text(trx.description)} — {sign}{amount}")
+            lines.append(f"• {format_text(trx.description)} — {amount}")
 
         if hidden_count:
             lines.append(f"...dan {hidden_count} transaksi {format_text(name)} lainnya")
