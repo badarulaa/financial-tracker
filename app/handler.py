@@ -51,6 +51,9 @@ def handle_message(db, text: str) -> str:
         if command == "category_help":
             return get_category_help()
 
+        if command == "balance":
+            return generate_current_period_balance(db)
+
         if command == "rekap":
             scope = parsed["scope"]
             owner = parsed.get("owner")
@@ -114,6 +117,11 @@ def get_help_text() -> str:
         "• bonus kantor 500k",
         "• freelance website 2jt",
         "• in gaji kantor 10jt",
+        "",
+        "*Saldo Periode*",
+        "• saldo",
+        "• saldo bulan ini",
+        "• saldo periode ini",
         "",
         "*Rekap Detail Lengkap*",
         "• rekap hari ini",
