@@ -7,6 +7,7 @@ from app.crud import get_transaction_between
 WIB = ZoneInfo("Asia/Jakarta")
 UTC = ZoneInfo("UTC")
 DEFAULT_CATEGORY = "other"
+FINANCIAL_CUTOFF_DAY = 26
 DETAIL_TRANSACTION_LIMIT = 10
 CATEGORY_ORDER = [
     "makanan",
@@ -69,56 +70,69 @@ def generate_last_week_recap(db, owner=None, view="detail"):
 
 
 def generate_monthly_recap(db, owner=None, view="detail"):
-    now = datetime.now(WIB)
-    start_local = datetime(now.year, now.month, 1, tzinfo=WIB)
-
-    if now.month == 12:
-        end_local = datetime(now.year + 1, 1, 1, tzinfo=WIB)
-    else:
-        end_local = datetime(now.year, now.month + 1, 1, tzinfo=WIB)
+    start_local, end_local = get_current_financial_period()
 
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
+    subtitle = format_period(start_local, end_local)
 
-    return _generate_recap(db, start, end, "Rekap Bulan Ini", owner=owner, view=view)
+    return _generate_recap(db, start, end, "Rekap Bulan Ini", owner=owner, view=view, subtitle=subtitle)
 
 
 def generate_last_month_recap(db, owner=None, view="detail"):
-    now = datetime.now(WIB)
-    this_month_start = datetime(now.year, now.month, 1, tzinfo=WIB)
-
-    if now.month == 1:
-        start_local = datetime(now.year - 1, 12, 1, tzinfo=WIB)
-    else:
-        start_local = datetime(now.year, now.month - 1, 1, tzinfo=WIB)
-
-    end_local = this_month_start
+    current_start, _ = get_current_financial_period()
+    start_local = add_months(current_start, -1)
+    end_local = current_start
 
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
+    subtitle = format_period(start_local, end_local)
 
-    return _generate_recap(db, start, end, "Rekap Bulan Lalu", owner=owner, view=view)
+    return _generate_recap(db, start, end, "Rekap Bulan Lalu", owner=owner, view=view, subtitle=subtitle)
 
 
-def _generate_recap(db, start, end, title, owner=None, view="detail"):
+def generate_current_period_balance(db):
+    start_local, end_local = get_current_financial_period()
+    start = start_local.astimezone(UTC).replace(tzinfo=None)
+    end = end_local.astimezone(UTC).replace(tzinfo=None)
+
+    transactions = get_transaction_between(db, start, end)
+    total_income = sum(trx.amount for trx in transactions if trx.type == "income")
+    total_expense = sum(trx.amount for trx in transactions if trx.type == "expense")
+    remaining = total_income - total_expense
+
+    return "\n".join([
+        "💰 *Periode Ini*",
+        format_period(start_local, end_local),
+        f"Income  : {format_rupiah(total_income)}",
+        f"Expense : {format_rupiah(total_expense)}",
+        f"Sisa    : {format_rupiah(remaining)}",
+    ])
+
+
+def _generate_recap(db, start, end, title, owner=None, view="detail", subtitle=None):
     transactions = get_transaction_between(db, start, end)
 
     if owner:
         transactions = [trx for trx in transactions if normalize_name(trx.name) == normalize_name(owner)]
 
     if not transactions:
-        return f"📊 *{title}*\n\nBelum ada transaksi."
+        lines = [f"📊 *{title}*"]
+        if subtitle:
+            lines.extend([subtitle])
+        lines.extend(["", "Belum ada transaksi."])
+        return "\n".join(lines)
 
     if view == "category":
-        return _generate_category_summary(transactions, title)
+        return _generate_category_summary(transactions, title, subtitle=subtitle)
 
     if view == "owner":
-        return _generate_owner_summary(transactions, title, owner=owner)
+        return _generate_owner_summary(transactions, title, owner=owner, subtitle=subtitle)
 
-    return _generate_detail_recap(transactions, title)
+    return _generate_detail_recap(transactions, title, subtitle=subtitle)
 
 
-def _generate_detail_recap(transactions, title):
+def _generate_detail_recap(transactions, title, subtitle=None):
     income_items = [trx for trx in transactions if trx.type == "income"]
     expense_items = [trx for trx in transactions if trx.type == "expense"]
 
@@ -126,8 +140,11 @@ def _generate_detail_recap(transactions, title):
     total_expense = sum(trx.amount for trx in expense_items)
     net = total_income - total_expense
 
-    lines = [
-        f"📊 *{title}*",
+    lines = [f"📊 *{title}*"]
+    if subtitle:
+        lines.append(subtitle)
+
+    lines.extend([
         "",
         "💰 *Summary*",
         f"Income  : {format_rupiah(total_income)}",
@@ -136,7 +153,7 @@ def _generate_detail_recap(transactions, title):
         "",
         f"🧾 *10 Transaksi Terakhir Per Orang*",
         "━━━━━━━━━━━━",
-    ]
+    ])
 
     _append_owner_detail_section(lines, transactions)
 
@@ -146,7 +163,7 @@ def _generate_detail_recap(transactions, title):
     return "\n".join(lines)
 
 
-def _generate_category_summary(transactions, title):
+def _generate_category_summary(transactions, title, subtitle=None):
     total_income = sum(trx.amount for trx in transactions if trx.type == "income")
     total_expense = sum(trx.amount for trx in transactions if trx.type == "expense")
     net = total_income - total_expense
@@ -163,8 +180,11 @@ def _generate_category_summary(transactions, title):
             category = DEFAULT_CATEGORY
         grouped[category] += trx.amount
 
-    lines = [
-        f"📊 *{title}*",
+    lines = [f"📊 *{title}*"]
+    if subtitle:
+        lines.append(subtitle)
+
+    lines.extend([
         "",
         "💰 *Summary*",
         f"Income  : {format_rupiah(total_income)}",
@@ -172,7 +192,7 @@ def _generate_category_summary(transactions, title):
         f"Net     : {format_rupiah(net)}",
         "",
         "━━━━━━━━━━━━",
-    ]
+    ])
 
     for category in sorted(grouped.keys(), key=category_sort_key):
         lines.append(f"• {format_text(category)} — {format_rupiah(grouped[category])}")
@@ -183,7 +203,7 @@ def _generate_category_summary(transactions, title):
     return "\n".join(lines)
 
 
-def _generate_owner_summary(transactions, title, owner=None):
+def _generate_owner_summary(transactions, title, owner=None, subtitle=None):
     total_income = sum(trx.amount for trx in transactions if trx.type == "income")
     total_expense = sum(trx.amount for trx in transactions if trx.type == "expense")
     net = total_income - total_expense
@@ -195,8 +215,11 @@ def _generate_owner_summary(transactions, title, owner=None):
         display_name = "Total"
         display_icon = "👥"
 
-    lines = [
-        f"📊 *{title}*",
+    lines = [f"📊 *{title}*"]
+    if subtitle:
+        lines.append(subtitle)
+
+    lines.extend([
         "",
         f"{display_icon} *{display_name}*",
         "",
@@ -205,7 +228,7 @@ def _generate_owner_summary(transactions, title, owner=None):
         f"Net     : {format_rupiah(net)}",
         "",
         "✅ Selesai",
-    ]
+    ])
 
     return "\n".join(lines)
 
@@ -236,6 +259,39 @@ def _append_owner_detail_section(lines, transactions):
             lines.append(f"...dan {hidden_count} transaksi {format_text(name)} lainnya")
 
         lines.append("")
+
+
+def get_current_financial_period():
+    now = datetime.now(WIB)
+
+    if now.day >= FINANCIAL_CUTOFF_DAY:
+        start_local = datetime(now.year, now.month, FINANCIAL_CUTOFF_DAY, tzinfo=WIB)
+        end_local = add_months(start_local, 1)
+    else:
+        end_local = datetime(now.year, now.month, FINANCIAL_CUTOFF_DAY, tzinfo=WIB)
+        start_local = add_months(end_local, -1)
+
+    return start_local, end_local
+
+
+def add_months(value: datetime, months: int) -> datetime:
+    month = value.month - 1 + months
+    year = value.year + month // 12
+    month = month % 12 + 1
+    return datetime(year, month, value.day, tzinfo=value.tzinfo)
+
+
+def format_period(start_local: datetime, end_local: datetime):
+    display_end = end_local - timedelta(days=1)
+    return f"_Periode: {format_date(start_local)} - {format_date(display_end)}_"
+
+
+def format_date(value: datetime):
+    month_names = [
+        "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+        "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+    ]
+    return f"{value.day} {month_names[value.month - 1]}"
 
 
 def person_icon(name: str) -> str:
