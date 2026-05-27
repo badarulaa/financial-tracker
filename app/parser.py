@@ -124,6 +124,9 @@ def _parse_command(text: str):
     if text == "kategori" or text.startswith("kategori "):
         return {"type": "command", "command": "category_help"}
 
+    if text == "saldo" or text in {"saldo bulan ini", "saldo periode ini"}:
+        return {"type": "command", "command": "balance"}
+
     if text.startswith("rekap"):
         owner = _parse_owner_filter(text)
         view = _parse_recap_view(text, owner)
