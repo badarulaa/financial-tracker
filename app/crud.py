@@ -32,8 +32,13 @@ def get_today_transactions(db: Session):
     ).all()
 
 
-def delete_last_transaction(db: Session):
-    last = db.query(Transaction).order_by(Transaction.created_at.desc()).first()
+def delete_last_transaction(db: Session, name: str | None = None):
+    query = db.query(Transaction)
+
+    if name:
+        query = query.filter(Transaction.name.ilike(name))
+
+    last = query.order_by(Transaction.created_at.desc()).first()
 
     if last:
         db.delete(last)
