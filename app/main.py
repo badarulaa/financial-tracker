@@ -69,11 +69,12 @@ async def receive_message(request: Request):
 
     db = SessionLocal()
 
-    response = handle_message(db, message)
-
-    send_whatsapp_message(sender, response)
-
-    db.close()
+    try:
+        response = handle_message(db, message)
+        print("Response:", response)
+        send_whatsapp_message(sender, response)
+    finally:
+        db.close()
 
     return {"status": "ok"}
 
@@ -98,7 +99,13 @@ def apply_sender_name(message: str, sender: str) -> str:
 
 
 def is_command(message: str) -> bool:
-    return message.startswith("rekap") or message.startswith("hapus terakhir")
+    command_words = {"help", "bantuan", "command", "commands", "cara pakai", "kategori"}
+
+    return (
+        message in command_words
+        or message.startswith("rekap")
+        or message.startswith("hapus terakhir")
+    )
 
 
 def normalize_phone(value: str) -> str:
