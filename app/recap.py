@@ -29,7 +29,7 @@ def generate_daily_recap(db, owner=None, view="detail"):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "Rekap Hari Ini", owner=owner, view=view)
+    return _generate_recap(db, start, end, "Rekap Hari Ini", owner=owner, view=view, include_period_balance=True)
 
 
 def generate_yesterday_recap(db, owner=None, view="detail"):
@@ -41,7 +41,7 @@ def generate_yesterday_recap(db, owner=None, view="detail"):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "Rekap Kemarin", owner=owner, view=view)
+    return _generate_recap(db, start, end, "Rekap Kemarin", owner=owner, view=view, include_period_balance=True)
 
 
 def generate_weekly_recap(db, owner=None, view="detail"):
@@ -53,7 +53,7 @@ def generate_weekly_recap(db, owner=None, view="detail"):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "Rekap Minggu Ini", owner=owner, view=view)
+    return _generate_recap(db, start, end, "Rekap Minggu Ini", owner=owner, view=view, include_period_balance=True)
 
 
 def generate_last_week_recap(db, owner=None, view="detail"):
@@ -66,7 +66,7 @@ def generate_last_week_recap(db, owner=None, view="detail"):
     start = start_local.astimezone(UTC).replace(tzinfo=None)
     end = end_local.astimezone(UTC).replace(tzinfo=None)
 
-    return _generate_recap(db, start, end, "Rekap Minggu Lalu", owner=owner, view=view)
+    return _generate_recap(db, start, end, "Rekap Minggu Lalu", owner=owner, view=view, include_period_balance=True)
 
 
 def generate_monthly_recap(db, owner=None, view="detail"):
@@ -110,29 +110,54 @@ def generate_current_period_balance(db):
     ])
 
 
-def _generate_recap(db, start, end, title, owner=None, view="detail", subtitle=None):
+def _build_period_balance_lines(db):
+    start_local, end_local = get_current_financial_period()
+    start = start_local.astimezone(UTC).replace(tzinfo=None)
+    end = end_local.astimezone(UTC).replace(tzinfo=None)
+
+    transactions = get_transaction_between(db, start, end)
+    total_income = sum(trx.amount for trx in transactions if trx.type == "income")
+    total_expense = sum(trx.amount for trx in transactions if trx.type == "expense")
+    remaining = total_income - total_expense
+
+    return [
+        "",
+        "💰 *Saldo Periode Ini*",
+        format_period(start_local, end_local),
+        f"Income  : {format_rupiah(total_income)}",
+        f"Expense : {format_rupiah(total_expense)}",
+        f"Sisa    : {format_rupiah(remaining)}",
+    ]
+
+
+def _generate_recap(db, start, end, title, owner=None, view="detail", subtitle=None, include_period_balance=False):
     transactions = get_transaction_between(db, start, end)
 
     if owner:
         transactions = [trx for trx in transactions if normalize_name(trx.name) == normalize_name(owner)]
 
+    # Build period balance prefix for non-monthly recaps
+    period_balance_lines = _build_period_balance_lines(db) if include_period_balance else []
+
     if not transactions:
         lines = [f"📊 *{title}*"]
         if subtitle:
             lines.extend([subtitle])
+        if period_balance_lines:
+            lines.extend(period_balance_lines)
         lines.extend(["", "Belum ada transaksi."])
         return "\n".join(lines)
 
     if view == "category":
-        return _generate_category_summary(transactions, title, subtitle=subtitle)
+        return _generate_category_summary(transactions, title, subtitle=subtitle, period_balance_lines=period_balance_lines)
 
     if view == "owner":
-        return _generate_owner_summary(transactions, title, owner=owner, subtitle=subtitle)
+        return _generate_owner_summary(transactions, title, owner=owner, subtitle=subtitle, period_balance_lines=period_balance_lines)
 
-    return _generate_detail_recap(transactions, title, subtitle=subtitle)
+    return _generate_detail_recap(transactions, title, subtitle=subtitle, period_balance_lines=period_balance_lines)
 
 
-def _generate_detail_recap(transactions, title, subtitle=None):
+def _generate_detail_recap(transactions, title, subtitle=None, period_balance_lines=None):
     income_items = [trx for trx in transactions if trx.type == "income"]
     expense_items = [trx for trx in transactions if trx.type == "expense"]
 
@@ -143,6 +168,8 @@ def _generate_detail_recap(transactions, title, subtitle=None):
     lines = [f"📊 *{title}*"]
     if subtitle:
         lines.append(subtitle)
+    if period_balance_lines:
+        lines.extend(period_balance_lines)
 
     lines.extend([
         "",
@@ -164,7 +191,7 @@ def _generate_detail_recap(transactions, title, subtitle=None):
     return "\n".join(lines)
 
 
-def _generate_category_summary(transactions, title, subtitle=None):
+def _generate_category_summary(transactions, title, subtitle=None, period_balance_lines=None):
     total_income = sum(trx.amount for trx in transactions if trx.type == "income")
     total_expense = sum(trx.amount for trx in transactions if trx.type == "expense")
     net = total_income - total_expense
@@ -184,6 +211,8 @@ def _generate_category_summary(transactions, title, subtitle=None):
     lines = [f"📊 *{title}*"]
     if subtitle:
         lines.append(subtitle)
+    if period_balance_lines:
+        lines.extend(period_balance_lines)
 
     lines.extend([
         "",
@@ -204,7 +233,7 @@ def _generate_category_summary(transactions, title, subtitle=None):
     return "\n".join(lines)
 
 
-def _generate_owner_summary(transactions, title, owner=None, subtitle=None):
+def _generate_owner_summary(transactions, title, owner=None, subtitle=None, period_balance_lines=None):
     total_income = sum(trx.amount for trx in transactions if trx.type == "income")
     total_expense = sum(trx.amount for trx in transactions if trx.type == "expense")
     net = total_income - total_expense
@@ -219,6 +248,8 @@ def _generate_owner_summary(transactions, title, owner=None, subtitle=None):
     lines = [f"📊 *{title}*"]
     if subtitle:
         lines.append(subtitle)
+    if period_balance_lines:
+        lines.extend(period_balance_lines)
 
     lines.extend([
         "",
