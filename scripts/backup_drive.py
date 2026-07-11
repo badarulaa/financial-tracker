@@ -2,8 +2,10 @@ import os
 import datetime
 import subprocess
 import gzip
+import json
 
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -17,20 +19,24 @@ from app.config import settings
 DB_NAME = "financial_db"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SERVICE_ACCOUNT_FILE = os.path.join(BASE_DIR, "credentials.json")
+TOKEN_FILE = "/root/.hermes/google_token.json"
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
 # =============================
-# GOOGLE DRIVE SERVICE
+# GOOGLE DRIVE SERVICE (OAuth2)
 # =============================
 
 def get_drive_service():
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE,
-        scopes=SCOPES
-    )
+    creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+        # Save refreshed token
+        with open(TOKEN_FILE, 'w') as f:
+            f.write(creds.to_json())
+
     return build("drive", "v3", credentials=creds)
 
 
@@ -80,7 +86,6 @@ def upload_to_drive(filepath):
     service.files().create(
         body=file_metadata,
         media_body=media,
-        supportsAllDrives=True,
         fields="id"
     ).execute()
 
